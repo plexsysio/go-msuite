@@ -9,7 +9,7 @@ import (
 	"net"
 )
 
-var log = logger.Logger("net/tcp")
+var log = logger.Logger("net")
 
 func NewTCPListener(conf config.Config) (net.Listener, error) {
 	portVal, ok := conf.Get("grpc_port").(int32)
