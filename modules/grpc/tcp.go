@@ -1,15 +1,12 @@
-package net
+package grpcServer
 
 import (
 	"errors"
 	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
-	logger "github.com/ipfs/go-log"
 	"go.uber.org/fx"
 	"net"
 )
-
-var log = logger.Logger("net")
 
 func NewTCPListener(conf config.Config) (net.Listener, error) {
 	portVal, ok := conf.Get("grpc_port").(int32)

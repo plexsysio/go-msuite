@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
-	"github.com/aloknerurkar/go-msuite/modules/net"
+	"github.com/aloknerurkar/go-msuite/modules/libp2p"
 	logger "github.com/ipfs/go-log"
 	"go.uber.org/fx"
 )
@@ -14,7 +14,8 @@ func main() {
 	logger.SetLogLevel("*", "Debug")
 	app := fx.New(
 		config.Module,
-		net.TCP,
+		libp2p.P2P,
+		libp2p.P2PGrpc,
 		grpcServer.JwtAuth,
 		grpcServer.TracerModule,
 		grpcServer.Module,

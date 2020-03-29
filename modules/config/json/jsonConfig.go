@@ -10,6 +10,7 @@ var log = logger.Logger("jsonConf")
 
 type JsonConfig struct {
 	GrpcPort    int32  `json:"grpc_port"`
+	P2PPort     int32  `json:"p2p_port"`
 	UseJwt      bool   `json:"use_jwt"`
 	UseTracing  bool   `json:"use_tracing"`
 	ServiceName string `json:"service_name"`
@@ -19,7 +20,7 @@ type JsonConfig struct {
 func DefaultConfig() *JsonConfig {
 	log.Info("Returning default config")
 	return &JsonConfig{
-		GrpcPort:    10000,
+		P2PPort:     10000,
 		UseJwt:      false,
 		UseTracing:  true,
 		TracingHost: "localhost:16656",
@@ -86,7 +87,7 @@ func (j *JsonConfig) Get(key string) interface{} {
 	if !ok {
 		return nil
 	}
-	if key == "grpc_port" {
+	if key == "grpc_port" || key == "p2p_port" {
 		return int32(val.(float64))
 	}
 	if key == "use_jwt" || key == "use_tracing" {
@@ -104,6 +105,15 @@ func (j *JsonConfig) Set(key string, val interface{}) {
 			iVal, err := strconv.ParseInt(strVal, 10, 0)
 			if err == nil {
 				j.GrpcPort = int32(iVal)
+			}
+		}
+	case "p2p_port":
+		if intVal, ok := val.(int32); ok {
+			j.P2PPort = intVal
+		} else if strVal, ok := val.(string); ok {
+			iVal, err := strconv.ParseInt(strVal, 10, 0)
+			if err == nil {
+				j.P2PPort = int32(iVal)
 			}
 		}
 	case "use_jwt":

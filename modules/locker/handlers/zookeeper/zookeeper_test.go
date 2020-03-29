@@ -1,0 +1,104 @@
+//     Digota <http://digota.com> - eCommerce microservice
+//     Copyright (C) 2017  Yaron Sumel <yaron@digota.com>. All Rights Reserved.
+//
+//     This program is free software: you can redistribute it and/or modify
+//     it under the terms of the GNU Affero General Public License as published
+//     by the Free Software Foundation, either version 3 of the License, or
+//     (at your option) any later version.
+//
+//     This program is distributed in the hope that it will be useful,
+//     but WITHOUT ANY WARRANTY; without even the implied warranty of
+//     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//     GNU Affero General Public License for more details.
+//
+//     You should have received a copy of the GNU Affero General Public License
+//     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+package zookeeper
+
+import (
+	"fmt"
+	"os"
+	"testing"
+	"time"
+
+	uuid "github.com/satori/go.uuid"
+)
+
+type testObj struct {
+	Id string `bson:"_id"`
+}
+
+func (o *testObj) GetNamespace() string {
+	return "mongo_test"
+}
+
+func (o *testObj) GetId() string {
+	return o.Id
+}
+
+func (o *testObj) SetId(id string) {
+	o.Id = id
+}
+
+var zkHostname = func() string {
+	if len(os.Getenv("ZOOKEEPER")) > 0 {
+		return os.Getenv("ZOOKEEPER")
+	}
+	return "localhost"
+}
+
+func TestLock_Lock(t *testing.T) {
+
+	l := &zkLocker{zp: newPool(fmt.Sprintf("%s:%d", zkHostname(), 2181))}
+	defer l.Close()
+
+	uuid_obj := uuid.NewV4()
+
+	unlock, err := l.Lock(&testObj{Id: uuid_obj.String()})
+	if err != nil {
+		t.Fatal(err)
+	} else {
+		unlock()
+	}
+
+	if _, err := l.Lock(&testObj{Id: ""}); err == nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLock_Close(t *testing.T) {
+
+	l := &zkLocker{zp: newPool(fmt.Sprintf("%s:%d", zkHostname(), 2181))}
+
+	if err := l.Close(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLock_TryLock(t *testing.T) {
+
+	l := &zkLocker{zp: newPool(fmt.Sprintf("%s:%d", zkHostname(), 2181))}
+	defer l.Close()
+
+	uuid_obj := uuid.NewV4()
+
+	unlock, err := l.Lock(&testObj{Id: uuid_obj.String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer unlock()
+
+	if unlock, err := l.TryLock(&testObj{Id: uuid_obj.String()}, time.Second); err == nil {
+		t.Fatal(err)
+		unlock()
+	}
+
+	uuid_obj2 := uuid.NewV4()
+
+	if unlock, err := l.TryLock(&testObj{Id: uuid_obj2.String()}, time.Second); err != nil {
+		t.Fatal(err)
+	} else {
+		unlock()
+	}
+}
