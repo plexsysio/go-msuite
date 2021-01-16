@@ -28,7 +28,6 @@ func New(lc fx.Lifecycle, params GrpcServerParams) (*grpc.Server, error) {
 			return rpcSrv.Serve(params.Listnr)
 		},
 		OnStop: func(ctx context.Context) error {
-			params.Listnr.Close()
 			rpcSrv.Stop()
 			return nil
 		},

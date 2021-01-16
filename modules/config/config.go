@@ -1,18 +1,18 @@
 package config
 
 import (
-	"github.com/aloknerurkar/go-msuite/modules/config/json"
-	"go.uber.org/fx"
+	"io"
 )
 
 type Config interface {
-	Get(string) interface{}
-}
+	io.Reader
+	// Filename if used
+	FileName(string) string
+	// Print helpers
+	String() string
+	Pretty() string
 
-func NewConf() Config {
-	return jsonConf.DefaultConfig()
+	// Getters/Setters
+	Get(key string, val interface{}) bool
+	Set(key string, val interface{})
 }
-
-var Module = fx.Options(
-	fx.Provide(NewConf),
-)

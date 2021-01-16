@@ -1,61 +1,107 @@
 package jsonConf
 
 import (
+	"os"
 	"testing"
+
+	logger "github.com/ipfs/go-log/v2"
 )
 
-func getString(val interface{}) string {
-	if val == nil {
-		return ""
-	}
-	str, ok := val.(string)
-	if !ok {
-		return ""
-	}
-	return str
+var logg = logger.Logger("jsonConfig")
+
+func TestMain(m *testing.M) {
+	logger.SetLogLevel("*", "Debug")
+	code := m.Run()
+	os.Exit(code)
 }
 
-func getInt32(val interface{}) int32 {
-	if val == nil {
-		return -1
-	}
-	floatV, ok := val.(float64)
-	if !ok {
-		return -1
-	}
-	return int32(floatV)
+type Storage struct {
+	Allocated int
+}
+
+type Location struct {
+	City string
 }
 
 func TestGetSetConfig(t *testing.T) {
-	conf := &JsonConfig{
-		DeviceName: "testDevice",
-		Storage:    5,
-		MaxPeers:   100,
+	var conf = &JsonConfig{}
+
+	var deviceName = "newTestDevice"
+	conf.Set("device_name", deviceName)
+
+	var bootstraps = []string{"hello", "JSONtest"}
+	conf.Set("bootstraps", bootstraps)
+
+	var i64 = int64(123)
+	conf.Set("storage64", i64)
+	var f32 = float32(0.101)
+	conf.Set("storage32", f32)
+
+	loc := Location{City: "Kolkata"}
+	conf.Set("location", loc)
+
+	st := Storage{Allocated: 123}
+	conf.Set("storage", st)
+
+	result, _ := conf.Marshal()
+	conf.Unmarshal(result)
+
+	var temp string
+	conf.Get("device_name", &temp)
+	logg.Debug("Got device name : ", temp)
+	if temp != "newTestDevice" {
+		t.Fatal("Got incorrect device")
 	}
 
-	verifyFn := func(name string, store, peers int32) {
-		t.Logf("Verifying %s %d %d", name, store, peers)
-		dName := getString(conf.Get("device_name"))
-		if dName != name {
-			t.Fatalf("Got incorrect device %s", dName)
-		}
-
-		storage := getInt32(conf.Get("storage"))
-		if storage != store {
-			t.Fatalf("Got incorrect storage %d", storage)
-		}
-
-		maxPeers := getInt32(conf.Get("max_peers"))
-		if maxPeers != peers {
-			t.Fatalf("Got incorrect storage %d", storage)
-		}
+	var tempArr []string
+	conf.Get("bootstraps", &tempArr)
+	logg.Debug("Got bootstraps : ", tempArr)
+	if equal(bootstraps, tempArr) != true {
+		t.Fatal("Got incorrect bootstrap")
 	}
 
-	verifyFn("testDevice", 5, 100)
+	var tempf64 int64
+	conf.Get("storage64", &tempf64)
+	logg.Debug("Got storage64 name : ", tempf64)
+	if tempf64 != 123 {
+		t.Fatal("Got incorrect storage64")
+	}
 
-	conf.Set("device_name", "newTestDevice")
-	conf.Set("storage", int32(10))
-	conf.Set("max_peers", int32(200))
+	var temp32 float64
+	conf.Get("storage32", &temp32)
+	logg.Debug("Got storage32 name : ", temp32)
+	if temp32 != 0.101 {
+		t.Fatal("Got incorrect storage32")
+	}
 
-	verifyFn("newTestDevice", 10, 200)
+	locGet := Location{}
+	conf.Get("location", &locGet)
+	logg.Debug("Got location : ", locGet.City)
+	if locGet.City != loc.City {
+		t.Fatal("Got incorrect location")
+	}
+
+	stGet := Storage{}
+	conf.Get("storage", &stGet)
+	logg.Debug("Got storage : ", stGet.Allocated)
+	if stGet.Allocated != st.Allocated {
+		t.Fatal("Got incorrect storage")
+	}
+
+	var asdasd interface{}
+	conf.Get("device_name", &asdasd)
+	logg.Debug("Got storage : ", asdasd)
+}
+
+func equal(a, b []string) bool {
+	if len(a) != len(b) {
+		logg.Debug(len(a), len(b))
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
 }

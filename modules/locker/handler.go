@@ -1,14 +1,14 @@
 package locker
 
 import (
-	storeItem "github.com/aloknerurkar/go-msuite/modules/store"
+	"github.com/StreamSpace/ss-store"
 	"time"
 )
 
 const (
 	// lock acquire timeout
 	// DefaultTimeout lock acquire timeout
-	DefaultTimeout = time.Millisecond * 30000
+	DefaultTimeout = time.Millisecond * 1000
 )
 
 type (
@@ -16,7 +16,7 @@ type (
 	// should implement in order to become valid handler
 	Locker interface {
 		Close() error
-		Lock(doc storeItem.Item) (func() error, error)
-		TryLock(doc storeItem.Item, t time.Duration) (func() error, error)
+		Lock(doc store.Item) (func() error, error)
+		TryLock(doc store.Item, t time.Duration) (func() error, error)
 	}
 )
