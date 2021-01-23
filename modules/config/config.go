@@ -6,8 +6,6 @@ import (
 
 type Config interface {
 	io.Reader
-	// Filename if used
-	FileName(string) string
 	// Print helpers
 	String() string
 	Pretty() string
@@ -15,4 +13,8 @@ type Config interface {
 	// Getters/Setters
 	Get(key string, val interface{}) bool
 	Set(key string, val interface{})
+}
+
+func FromFile(filepath string) (Config, error) {
+	return nil, nil
 }
