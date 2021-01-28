@@ -1,15 +1,142 @@
 package fsrepo
 
 import (
+	"errors"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/utils"
 	ds "github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/mount"
+	"github.com/ipfs/go-ds-badger2"
+	"github.com/ipfs/go-ds-flatfs"
+	"github.com/ipfs/go-ds-leveldb"
+	"path/filepath"
 )
 
-type DatastoreCfg interface {
-	Type() string
-	AdditionalCfg() map[string]interface{}
+type MountInfo struct {
+	Path   string
+	Prefix string
+	Usage  uint64
 }
 
-func openDatastoreFromCfg(c config.Config) (ds.Batching, error) {
-	return nil, nil
+type Datastore interface {
+	ds.Batching
+	Mounts() []MountInfo
+}
+
+var DefaultMountInfo = map[string]interface{}{
+	"level": map[string]interface{}{
+		"path":   "kv",
+		"prefix": "/",
+	},
+	"flatfs": map[string]interface{}{
+		"path":      "blocks",
+		"prefix":    "blocks",
+		"shardFunc": "",
+		"sync":      true,
+	},
+}
+
+func openDatastoreFromCfg(root string, c config.Config) (mDS ds.Batching, retErr error) {
+	mntInfo := map[string]interface{}{}
+	if ok := c.Get("Mounts", &mntInfo); !ok {
+		mntInfo = DefaultMountInfo
+	}
+	mnts := []mount.Mount{}
+	mntInfos := map[string]mount.Mount{}
+	defer func() {
+		if retErr != nil {
+			for _, v := range mnts {
+				v.Datastore.Close()
+			}
+		}
+	}()
+	for k, v := range mntInfo {
+		dCfg, ok := v.(map[string]interface{})
+		if !ok {
+			retErr = errors.New("Sub DS config missing for datastore")
+			return
+		}
+		prefix, ok := dCfg["prefix"].(string)
+		if !ok {
+			retErr = errors.New("Prefix missing for datastore")
+			return
+		}
+		path, ok := dCfg["path"].(string)
+		if !ok {
+			path = root
+		} else {
+			path = filepath.Join(root, path)
+			err := utils.MkdirIfNotExists(path)
+			if err != nil {
+				retErr = err
+				return
+			}
+		}
+		var newDs ds.Batching
+		var err error
+		switch k {
+		case "level":
+			newDs, err = leveldb.NewDatastore(path, &leveldb.Options{})
+		case "badger":
+			newDs, err = badger.NewDatastore(path, &badger.DefaultOptions)
+		case "flatfs":
+			sFn, ok := dCfg["shardFunc"].(string)
+			if !ok {
+				sFn = ""
+			}
+			sn, ok := dCfg["sync"].(bool)
+			if !ok {
+				sn = true
+			}
+			sf, err := flatfs.ParseShardFunc(sFn)
+			if err != nil {
+				retErr = err
+				return
+			}
+			newDs, err = flatfs.CreateOrOpen(path, sf, sn)
+		default:
+			retErr = errors.New("Invalid datastore type")
+			return
+		}
+		if err != nil {
+			retErr = err
+			return
+		}
+		newMnt := mount.Mount{
+			Prefix:    ds.NewKey(prefix),
+			Datastore: newDs,
+		}
+		mnts = append(mnts, newMnt)
+		mntInfos[k] = newMnt
+	}
+	mDS = mount.New(mnts)
+	return &mountedDS{
+		Batching: mDS,
+		mnts:     mntInfos,
+	}, nil
+}
+
+type mountedDS struct {
+	ds.Batching
+	mnts map[string]mount.Mount
+}
+
+func (m *mountedDS) Mounts() ([]MountInfo, error) {
+	mntInfos := []MountInfo{}
+	for k, v := range m.mnts {
+		if pds, ok := v.Datastore.(ds.PersistentDatastore); ok {
+			usg, err := pds.DiskUsage()
+			if err != nil {
+				return nil, wrapError("Failed getting disk usage", err)
+
+			}
+			mntInfos = append(mntInfos, MountInfo{
+				Path:   k,
+				Prefix: v.Prefix.String(),
+				Usage:  usg,
+			})
+
+		}
+	}
+	return mntInfos, nil
 }

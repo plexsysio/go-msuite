@@ -11,15 +11,51 @@ import (
 	"github.com/aloknerurkar/go-msuite/utils"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
-	"github.com/ipfs/go-ds-badger2"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"path/filepath"
 	"sync"
 )
 
+type repoOpener struct {
+	mtx    sync.Mutex
+	active repo.Repo
+	refCnt int
+}
+
+func (r *repoOpener) Open(openFn func() (repo.Repo, error)) (repo.Repo, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	defer func() {
+		r.refCnt++
+	}()
+	if r.active != nil {
+		return r.active, nil
+	}
+	rp, err := openFn()
+	if err != nil {
+		return nil, err
+	}
+	r.active = rp
+	r.refCnt = 0
+	return r.active, nil
+}
+
+func (r *repoOpener) Close(closeFn func() error) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	r.refCnt--
+	if r.refCnt > 0 {
+		return nil
+	}
+	return closeFn()
+}
+
 var (
 	pkgLock     sync.Mutex
+	opener      = &repoOpener{}
 	storePrefix = ds.NewKey("s")
 )
 
@@ -27,7 +63,7 @@ type fsRepo struct {
 	path    string
 	cfg     config.Config
 	rootDS  ds.Batching
-	kvStore ssStore.Store
+	kvStore store.Store
 }
 
 func datastorePath(root string) string {
@@ -143,7 +179,7 @@ func (f *fsRepo) openDatastore() error {
 	if !utils.Exists(datastorePath(f.path)) {
 		return utils.MkdirIfNotExists(datastorePath(f.path))
 	}
-	ds, err := openDatastoreFromCfg(f.cfg)
+	ds, err := openDatastoreFromCfg(f.path, f.cfg)
 	if err != nil {
 		return err
 	}
@@ -153,7 +189,7 @@ func (f *fsRepo) openDatastore() error {
 
 func (f *fsRepo) openStore() error {
 	nds := namespace.Wrap(f.rootDS, storePrefix)
-	dsStore, err := ssStore.NewDataStore(ssStore.DSConfig{
+	dsStore, err := ssStore.NewDataStore(&ssStore.DSConfig{
 		DS: nds,
 	})
 	if err != nil {
@@ -168,8 +204,14 @@ func Open(path string) (repo.Repo, error) {
 	defer pkgLock.Unlock()
 
 	if !isInitialized(path) {
-		return nil, wrapError("already initialized", nil)
+		return nil, wrapError("not initialized", nil)
 	}
+	return opener.Open(func() (repo.Repo, error) {
+		return open(path)
+	})
+}
+
+func open(path string) (repo.Repo, error) {
 	r := &fsRepo{
 		path: path,
 	}
@@ -198,7 +240,7 @@ func (f *fsRepo) SetConfig(c config.Config) error {
 	return utils.WriteToFile(c, configPath(f.path))
 }
 
-func (f *fsRepo) Store() ssStore.Store {
+func (f *fsRepo) Store() store.Store {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 	return f.kvStore
@@ -211,6 +253,15 @@ func (f *fsRepo) Datastore() ds.Batching {
 }
 
 func (f *fsRepo) Close() error {
+	pkgLock.Lock()
+	defer pkgLock.Unlock()
+
+	return opener.Close(func() error {
+		return f.close()
+	})
+}
+
+func (f *fsRepo) close() error {
 	err := wrapError("failed closing repo", nil)
 	if f.kvStore != nil {
 		e := f.kvStore.Close()

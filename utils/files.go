@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"errors"
 	"io"
+	"io/ioutil"
 	"os"
 )
 
@@ -20,8 +22,29 @@ func WriteToFile(r io.Reader, newFile string) error {
 	if err != nil {
 		return err
 	}
+	defer fp.Close()
 	_, err = io.Copy(fp, r)
 	return err
+}
+
+func ReadFromFile(w io.Writer, f string) error {
+	fp, err := os.Open(f)
+	if err != nil {
+		return err
+	}
+	defer fp.Close()
+	buf, err := ioutil.ReadAll(fp)
+	if err != nil {
+		return err
+	}
+	n, err := w.Write(buf)
+	if err != nil {
+		return err
+	}
+	if n < len(buf) {
+		return errors.New("Unable to write entire config")
+	}
+	return nil
 }
 
 func MkdirIfNotExists(path string) error {

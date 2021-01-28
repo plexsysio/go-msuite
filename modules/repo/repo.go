@@ -9,7 +9,7 @@ import (
 
 type Repo interface {
 	Config() config.Config
-	SetConfig(config.Config)
+	SetConfig(config.Config) error
 
 	Datastore() ds.Batching
 

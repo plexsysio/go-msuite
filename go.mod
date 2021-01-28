@@ -13,6 +13,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-ds-badger2 v0.1.0
+	github.com/ipfs/go-ds-flatfs v0.4.5
+	github.com/ipfs/go-ds-leveldb v0.4.1
 	github.com/ipfs/go-log v1.0.3
 	github.com/ipfs/go-log/v2 v2.1.1
 	github.com/libp2p/go-libp2p v0.7.2

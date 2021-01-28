@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/aloknerurkar/go-msuite/utils"
 	logger "github.com/ipfs/go-log/v2"
 )
 
@@ -46,21 +47,13 @@ func DefaultConfig() *JsonConfig {
 	return &conf
 }
 
-// Functions for Store and Item interfaces
-func (j *JsonConfig) GetNamespace() string {
-	return "msuiteConfig"
-}
-
-func (j *JsonConfig) GetId() string {
-	return "1"
-}
-
-func (j *JsonConfig) Marshal() ([]byte, error) {
-	return json.Marshal(j)
-}
-
-func (j *JsonConfig) Unmarshal(buf []byte) error {
-	return json.Unmarshal(buf, j)
+func FromFile(f string) (*JsonConfig, error) {
+	j := &JsonConfig{}
+	err := utils.ReadFromFile(j, f)
+	if err != nil {
+		return nil, err
+	}
+	return j, nil
 }
 
 func (j *JsonConfig) String() string {
@@ -71,14 +64,30 @@ func (j *JsonConfig) String() string {
 	return string(buf)
 }
 
-func (j *JsonConfig) Json() []byte {
+func (j *JsonConfig) Read(p []byte) (int, error) {
 	buf, err := json.MarshalIndent(j, "", "\t")
 	if err != nil {
-		return []byte("INVALID_CONFIG")
+		return 0, err
 	}
-	return buf
+	copy(p, buf)
+	if len(buf) > len(p) {
+		return len(p), nil
+	}
+	return len(buf), nil
+}
+
+func (j *JsonConfig) Write(p []byte) (int, error) {
+	err := json.Unmarshal(p, j)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 func (j *JsonConfig) Pretty() string {
-	return string(j.Json())
+	buf, err := json.MarshalIndent(j, "", "\t")
+	if err != nil {
+		return "INVALID_CONFIG"
+	}
+	return string(buf)
 }
