@@ -7,6 +7,7 @@ import (
 	ssStore "github.com/StreamSpace/ss-ds-store"
 	"github.com/StreamSpace/ss-store"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/modules/config/json"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
 	"github.com/aloknerurkar/go-msuite/utils"
 	ds "github.com/ipfs/go-datastore"
@@ -19,30 +20,28 @@ import (
 
 type repoOpener struct {
 	mtx    sync.Mutex
-	active repo.Repo
+	active *fsRepo
 	refCnt int
 }
 
-func (r *repoOpener) Open(openFn func() (repo.Repo, error)) (repo.Repo, error) {
+func (r *repoOpener) Open(path string) (repo.Repo, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	defer func() {
-		r.refCnt++
-	}()
 	if r.active != nil {
+		r.refCnt++
 		return r.active, nil
 	}
-	rp, err := openFn()
+	rp, err := open(path)
 	if err != nil {
 		return nil, err
 	}
-	r.active = rp
-	r.refCnt = 0
+	r.active = rp.(*fsRepo)
+	r.refCnt = 1
 	return r.active, nil
 }
 
-func (r *repoOpener) Close(closeFn func() error) error {
+func (r *repoOpener) Close() error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -50,7 +49,7 @@ func (r *repoOpener) Close(closeFn func() error) error {
 	if r.refCnt > 0 {
 		return nil
 	}
-	return closeFn()
+	return r.active.close()
 }
 
 var (
@@ -99,7 +98,11 @@ func (f fsRepoErr) HasSecErr() bool {
 }
 
 func wrapError(msg string, secErr error) fsRepoErr {
-	return fsRepoErr{msg: msg, secErr: []error{secErr}}
+	err := fsRepoErr{msg: msg}
+	if secErr != nil {
+		err.Append(secErr)
+	}
+	return err
 }
 
 func initRepo(path string) error {
@@ -167,7 +170,7 @@ func (f *fsRepo) openConfig() error {
 	if !utils.Exists(configPath(f.path)) {
 		return errors.New("config is absent")
 	}
-	cfg, err := config.FromFile(configPath(f.path))
+	cfg, err := jsonConf.FromFile(configPath(f.path))
 	if err != nil {
 		return err
 	}
@@ -206,9 +209,7 @@ func Open(path string) (repo.Repo, error) {
 	if !isInitialized(path) {
 		return nil, wrapError("not initialized", nil)
 	}
-	return opener.Open(func() (repo.Repo, error) {
-		return open(path)
-	})
+	return opener.Open(path)
 }
 
 func open(path string) (repo.Repo, error) {
@@ -256,9 +257,7 @@ func (f *fsRepo) Close() error {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 
-	return opener.Close(func() error {
-		return f.close()
-	})
+	return opener.Close()
 }
 
 func (f *fsRepo) close() error {
@@ -278,5 +277,7 @@ func (f *fsRepo) close() error {
 	if err.HasSecErr() {
 		return err
 	}
+	f.kvStore = nil
+	f.rootDS = nil
 	return nil
 }

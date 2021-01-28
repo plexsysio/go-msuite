@@ -3,7 +3,7 @@ module github.com/aloknerurkar/go-msuite
 go 1.13
 
 require (
-	github.com/StreamSpace/ss-ds-store v0.0.3
+	github.com/StreamSpace/ss-ds-store v0.0.4
 	github.com/StreamSpace/ss-store v0.0.2
 	github.com/boltdb/bolt v1.3.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
@@ -26,7 +26,7 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.2.1
 	github.com/libp2p/go-libp2p-protocol v0.1.0
 	github.com/moxiaomomo/grpc-jaeger v0.0.0-20180617090213-05b879580c4a
-	github.com/multiformats/go-multiaddr v0.2.1
+	github.com/multiformats/go-multiaddr v0.2.1 // indirect
 	github.com/multiformats/go-multiaddr-net v0.1.3
 	github.com/satori/go.uuid v1.2.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible // indirect

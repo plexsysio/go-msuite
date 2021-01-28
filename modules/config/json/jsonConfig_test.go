@@ -2,6 +2,7 @@ package jsonConf
 
 import (
 	"github.com/aloknerurkar/go-msuite/utils"
+	"os"
 	"testing"
 )
 
@@ -33,11 +34,14 @@ func TestGetSetConfig(t *testing.T) {
 	st := Storage{Allocated: 123}
 	conf.Set("storage", st)
 
+	defer func() {
+		os.Remove("tmp.json")
+	}()
+
 	err := utils.WriteToFile(conf, "tmp.json")
 	if err != nil {
 		t.Fatal("Failed writing config to file")
 	}
-
 	conf2 := &JsonConfig{}
 	err = utils.ReadFromFile(conf2, "tmp.json")
 	if err != nil {

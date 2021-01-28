@@ -31,7 +31,7 @@ var DefaultMountInfo = map[string]interface{}{
 	"flatfs": map[string]interface{}{
 		"path":      "blocks",
 		"prefix":    "blocks",
-		"shardFunc": "",
+		"shardFunc": "/repo/flatfs/shard/v1/next-to-last/2",
 		"sync":      true,
 	},
 }
@@ -82,7 +82,7 @@ func openDatastoreFromCfg(root string, c config.Config) (mDS ds.Batching, retErr
 		case "flatfs":
 			sFn, ok := dCfg["shardFunc"].(string)
 			if !ok {
-				sFn = ""
+				sFn = "/repo/flatfs/shard/v1/next-to-last/2"
 			}
 			sn, ok := dCfg["sync"].(bool)
 			if !ok {
@@ -128,14 +128,12 @@ func (m *mountedDS) Mounts() ([]MountInfo, error) {
 			usg, err := pds.DiskUsage()
 			if err != nil {
 				return nil, wrapError("Failed getting disk usage", err)
-
 			}
 			mntInfos = append(mntInfos, MountInfo{
 				Path:   k,
 				Prefix: v.Prefix.String(),
 				Usage:  usg,
 			})
-
 		}
 	}
 	return mntInfos, nil

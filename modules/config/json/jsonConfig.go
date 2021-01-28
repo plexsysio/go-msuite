@@ -3,6 +3,7 @@ package jsonConf
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 
 	"github.com/aloknerurkar/go-msuite/utils"
 	logger "github.com/ipfs/go-log/v2"
@@ -73,7 +74,7 @@ func (j *JsonConfig) Read(p []byte) (int, error) {
 	if len(buf) > len(p) {
 		return len(p), nil
 	}
-	return len(buf), nil
+	return len(buf), io.EOF
 }
 
 func (j *JsonConfig) Write(p []byte) (int, error) {
