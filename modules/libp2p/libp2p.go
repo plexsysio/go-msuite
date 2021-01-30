@@ -2,7 +2,7 @@ package libp2p
 
 import (
 	logger "github.com/ipfs/go-log"
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	"go.uber.org/fx"
 )
 
@@ -12,8 +12,7 @@ var P2PGrpc = fx.Options(
 )
 
 var P2P = fx.Options(
-	fx.Provide(InitIdentity),
-	fx.Provide(NewP2PHost),
+	fx.Provide(Libp2p),
 	fx.Invoke(NewMDNSDiscovery),
 )
 

@@ -2,8 +2,9 @@ package libp2p
 
 import (
 	"context"
-	host "github.com/libp2p/go-libp2p-host"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+	host "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"time"
 )
@@ -23,7 +24,7 @@ type discoveryNotifiee struct {
 	host.Host
 }
 
-func (d *discoveryNotifiee) HandlePeerFound(pi pstore.PeerInfo) {
+func (d *discoveryNotifiee) HandlePeerFound(pi peer.AddrInfo) {
 	log.Infof("Peer discovery %s", pi.ID.Pretty())
 	d.Peerstore().AddAddrs(pi.ID, pi.Addrs, pstore.PermanentAddrTTL)
 	err := d.Connect(context.Background(), pi)

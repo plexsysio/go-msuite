@@ -2,74 +2,78 @@ package libp2p
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
-	"github.com/libp2p/go-libp2p"
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	host "github.com/libp2p/go-libp2p-host"
-	peer "github.com/libp2p/go-libp2p-peer"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
+	"github.com/ipfs/go-datastore"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	host "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/routing"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-type IdentityInfo struct {
-	PrivKey crypto.PrivKey
-	PubKey  crypto.PubKey
-	ID      peer.ID
-}
-
-func InitIdentity(conf config.Config) (*IdentityInfo, error) {
-	var (
-		priv crypto.PrivKey
-		pub  crypto.PubKey
-	)
-	privKeyStr, ok := conf.Get("priv_key").(string)
-	if ok && len(privKeyStr) > 0 {
-		log.Info("Reusing private key from config")
-		pkBytes, err := base64.StdEncoding.DecodeString(privKeyStr)
-		if err != nil {
-			return nil, err
-		}
-		priv, err = crypto.UnmarshalPrivateKey(pkBytes)
-		if err != nil {
-			return nil, err
-		}
-		pub = priv.GetPublic()
-		if pub == nil {
-			return nil, errors.New("Public component nil")
-		}
-	} else {
-		log.Info("Generating new identity for host")
-		var e error
-		priv, pub, e = crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
-		if e != nil {
-			return nil, e
-		}
-	}
-	// Obtain Peer ID from public key
-	pid, err := peer.IDFromPublicKey(pub)
-	if err != nil {
-		return nil, err
-	}
-	return &IdentityInfo{
-		PrivKey: priv,
-		PubKey:  pub,
-		ID:      pid,
-	}, nil
-}
-
-func NewP2PHost(conf config.Config, id *IdentityInfo) (host.Host, error) {
-	portVal, ok := conf.Get("p2p_port").(int32)
+func Libp2p(ctx context.Context, conf config.Config) (host.Host, routing.Routing, error) {
+	var swPort string
+	ok := conf.Get("SwarmPort", &swPort)
 	if !ok {
-		return nil, errors.New("P2P port absent")
+		return nil, nil, errors.New("Swarm Port missing")
 	}
-
-	return libp2p.New(
-		context.Background(),
-		libp2p.Identity(id.PrivKey),
-		libp2p.ListenAddrStrings(
-			fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", portVal),
-		),
+	tcpAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", swPort))
+	if err != nil {
+		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
+	}
+	quicAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/quic/%s", swPort))
+	if err != nil {
+		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
+	}
+	listenAddrs := []multiaddr.Multiaddr{tcpAddr, quicAddr}
+	id := map[string]interface{}{}
+	ok = conf.Get("Identity", &id)
+	if !ok {
+		return nil, nil, errors.New("Identity info missing")
+	}
+	privKeyStr, ok := id["PrivKey"]
+	if !ok {
+		return nil, nil, errors.New("Private key missing")
+	}
+	pkBytes, err := base64.StdEncoding.DecodeString(privKeyStr.(string))
+	if err != nil {
+		return nil, nil, err
+	}
+	priv, err := crypto.UnmarshalPrivateKey(pkBytes)
+	if err != nil {
+		return nil, nil, err
+	}
+	return ipfslite.SetupLibp2p(
+		ctx,
+		priv,
+		nil,
+		listenAddrs,
+		nil,
+		ipfslite.Libp2pOptionsExtra...,
 	)
+}
+
+func NewNode(
+	ctx context.Context,
+	h host.Host,
+	dht routing.Routing,
+	rootDS datastore.Batching,
+) (*ipfslite.Peer, error) {
+	return ipfslite.New(
+		ctx,
+		rootDS,
+		h,
+		dht,
+		&ipfslite.Config{
+			Offline: false,
+		},
+	)
+}
+
+func Pubsub(ctx context.Context, h host.Host) (*pubsub.PubSub, error) {
+	return pubsub.NewGossipSub(ctx, h)
 }

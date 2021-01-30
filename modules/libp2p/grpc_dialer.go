@@ -3,8 +3,7 @@ package libp2p
 import (
 	"context"
 	"github.com/libp2p/go-libp2p-core/host"
-	peer "github.com/libp2p/go-libp2p-peer"
-	ps "github.com/libp2p/go-libp2p-peerstore"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"google.golang.org/grpc"
 	"net"
 	"time"
@@ -33,7 +32,7 @@ func (p *p2pDialer) getDialer(ctx context.Context) grpc.DialOption {
 		if err != nil {
 			return nil, err
 		}
-		err = p.Connect(subCtx, ps.PeerInfo{
+		err = p.Connect(subCtx, peer.AddrInfo{
 			ID: id,
 		})
 		if err != nil {

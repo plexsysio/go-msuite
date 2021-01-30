@@ -1,22 +1,40 @@
 package locker
 
 import (
-	"github.com/StreamSpace/ss-store"
-	"time"
+	"errors"
+	"github.com/aloknerurkar/dLocker"
+	rd "github.com/aloknerurkar/dLocker/handlers/redis"
+	zk "github.com/aloknerurkar/dLocker/handlers/zookeeper"
+	"github.com/aloknerurkar/go-msuite/modules/config"
 )
 
-const (
-	// lock acquire timeout
-	// DefaultTimeout lock acquire timeout
-	DefaultTimeout = time.Millisecond * 1000
-)
-
-type (
-	// Locker Interface is the base functionality that any locker handler
-	// should implement in order to become valid handler
-	Locker interface {
-		Close() error
-		Lock(doc store.Item) (func() error, error)
-		TryLock(doc store.Item, t time.Duration) (func() error, error)
+func NewLocker(c config.Config) (dLocker.DLocker, error) {
+	var lk string
+	ok := c.Get("Locker", lk)
+	if !ok {
+		return nil, errors.New("Locker not configured")
 	}
-)
+	switch lk {
+	case "zookeeper":
+		var host string
+		var port int
+		if ok := c.Get("ZookeeperHost", &host); !ok {
+			return nil, errors.New("Zookeeper host absent")
+		}
+		if ok := c.Get("ZookeeperPort", &port); !ok {
+			return nil, errors.New("Zookeeper port absent")
+		}
+		return zk.NewZkLocker(host, port)
+	case "redis":
+		var host, netw string
+		if ok := c.Get("RedisHost", &host); !ok {
+			return nil, errors.New("Redis host absent")
+		}
+		if ok := c.Get("RedisNetwork", &netw); !ok {
+			return nil, errors.New("Redis host absent")
+		}
+		// TODO: Add config for username/password authentication
+		return rd.NewRedisLocker(netw, host), nil
+	}
+	return nil, errors.New("Invalid locker handler")
+}

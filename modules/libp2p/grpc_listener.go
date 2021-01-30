@@ -3,7 +3,7 @@ package libp2p
 import (
 	"context"
 	"github.com/libp2p/go-libp2p-core/host"
-	inet "github.com/libp2p/go-libp2p-net"
+	inet "github.com/libp2p/go-libp2p-core/network"
 	manet "github.com/multiformats/go-multiaddr-net"
 	"io"
 	"net"
