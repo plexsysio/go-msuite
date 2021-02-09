@@ -1,16 +1,20 @@
-package libp2p
+package ipfs
 
 import (
 	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/StreamSpace/ants-db"
+	"github.com/StreamSpace/ss-store"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/ipfs/go-datastore"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
+	p2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
@@ -76,4 +80,17 @@ func NewNode(
 
 func Pubsub(ctx context.Context, h host.Host) (*pubsub.PubSub, error) {
 	return pubsub.NewGossipSub(ctx, h)
+}
+
+func NewSvcDiscovery(r routing.Routing) discovery.Discovery {
+	return p2pdiscovery.NewRoutingDiscovery(r)
+}
+
+func NewAntsDB(p *ipfslite.Peer, ps *pubsub.PubSub, ds datastore.Batching) (store.Store, error) {
+	return antsdb.New(
+		p,
+		ps,
+		ds,
+		antsdb.WithChannel("msuite"),
+	)
 }

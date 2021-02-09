@@ -1,4 +1,4 @@
-package libp2p
+package p2pgrpc
 
 import (
 	"context"

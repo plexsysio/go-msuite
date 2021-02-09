@@ -1,13 +1,16 @@
-package libp2p
+package p2pgrpc
 
 import (
 	"context"
 	"github.com/libp2p/go-libp2p-core/host"
 	inet "github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	manet "github.com/multiformats/go-multiaddr-net"
 	"io"
 	"net"
 )
+
+const Protocol protocol.ID = "/grpc/1.0.0"
 
 func NewP2PListener(h host.Host) (net.Listener, error) {
 	p := &p2pListener{
@@ -16,7 +19,6 @@ func NewP2PListener(h host.Host) (net.Listener, error) {
 	}
 	p.listenerCtx, p.listenerCancel = context.WithCancel(context.Background())
 	h.SetStreamHandler(Protocol, p.handleStream)
-
 	return p, nil
 }
 

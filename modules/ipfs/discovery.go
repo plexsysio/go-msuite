@@ -1,4 +1,4 @@
-package libp2p
+package ipfs
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"github.com/libp2p/go-libp2p/p2p/discovery"
 	"time"
 )
+
+const Rendezvous string = "/msuite/node"
 
 func NewMDNSDiscovery(h host.Host) error {
 	ser, err := discovery.NewMdnsService(context.Background(), h,

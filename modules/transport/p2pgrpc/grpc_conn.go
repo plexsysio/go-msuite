@@ -1,4 +1,4 @@
-package libp2p
+package p2pgrpc
 
 import (
 	inet "github.com/libp2p/go-libp2p-core/network"
