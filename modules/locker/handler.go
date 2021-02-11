@@ -6,6 +6,11 @@ import (
 	rd "github.com/aloknerurkar/dLocker/handlers/redis"
 	zk "github.com/aloknerurkar/dLocker/handlers/zookeeper"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	"go.uber.org/fx"
+)
+
+var Module = fx.Options(
+	fx.Provide(NewLocker),
 )
 
 func NewLocker(c config.Config) (dLocker.DLocker, error) {

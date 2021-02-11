@@ -2,6 +2,7 @@ package ipfs
 
 import (
 	"context"
+	logger "github.com/ipfs/go-log/v2"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
@@ -9,11 +10,12 @@ import (
 	"time"
 )
 
+var log = logger.Logger("mdnsdiscovery")
+
 const Rendezvous string = "/msuite/node"
 
-func NewMDNSDiscovery(h host.Host) error {
-	ser, err := discovery.NewMdnsService(context.Background(), h,
-		time.Minute*5, Rendezvous)
+func NewMDNSDiscovery(ctx context.Context, h host.Host) error {
+	ser, err := discovery.NewMdnsService(ctx, h, time.Minute*5, Rendezvous)
 	if err != nil {
 		log.Errorf("Failed registering MDNS service Err:%s", err.Error())
 		return err

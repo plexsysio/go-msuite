@@ -2,23 +2,35 @@ package p2pgrpc
 
 import (
 	"context"
+	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
 	inet "github.com/libp2p/go-libp2p-core/network"
 	"github.com/libp2p/go-libp2p-core/protocol"
 	manet "github.com/multiformats/go-multiaddr-net"
+	"go.uber.org/fx"
 	"io"
 	"net"
 )
 
+var log = logger.Logger("transport/p2p")
+
 const Protocol protocol.ID = "/grpc/1.0.0"
 
-func NewP2PListener(h host.Host) (net.Listener, error) {
+func NewP2PListener(lc fx.Lifecycle, h host.Host) (net.Listener, error) {
 	p := &p2pListener{
 		Host:     h,
 		streamCh: make(chan inet.Stream),
 	}
 	p.listenerCtx, p.listenerCancel = context.WithCancel(context.Background())
 	h.SetStreamHandler(Protocol, p.handleStream)
+	log.Info("Started listener on P2P Host")
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			log.Info("Stopping listener")
+			p.listenerCancel()
+			return nil
+		},
+	})
 	return p, nil
 }
 

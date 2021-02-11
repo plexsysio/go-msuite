@@ -1,34 +1,34 @@
-package grpcServer
+package tcp
 
 import (
 	"context"
 	"errors"
 	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 	"net"
 )
 
+var log = logger.Logger("transport/tcp")
+
 func NewTCPListener(lc fx.Lifecycle, conf config.Config) (net.Listener, error) {
-	portVal, ok := conf.Get("grpc_port").(int32)
+	var portVal int
+	ok := conf.Get("TCPPort", &portVal)
 	if !ok {
 		return nil, errors.New("Port absent")
 	}
-	log.Infof("Starting TCP listener on port %d", portVal)
+	log.Info("Starting TCP listener on port", portVal)
 	listnr, err := net.Listen("tcp", fmt.Sprintf(":%d", portVal))
 	if err != nil {
 		return nil, err
 	}
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
-			log.Debugf("Stopping TCP listener")
+			log.Info("Stopping listener")
 			listnr.Close()
 			return nil
 		},
 	})
 	return listnr, nil
 }
-
-var TCP = fx.Option(
-	fx.Provide(NewTCPListener),
-)

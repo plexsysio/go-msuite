@@ -3,20 +3,22 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/modules/config/json"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
 	"github.com/aloknerurkar/go-msuite/modules/ipfs"
-	logger "github.com/ipfs/go-log"
+	"github.com/aloknerurkar/go-msuite/modules/locker"
+	"github.com/aloknerurkar/go-msuite/modules/repo/fsrepo"
+	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 )
 
 func main() {
 	logger.SetLogLevel("*", "Debug")
 	app := fx.New(
-		config.Module,
-		ipfs.P2P,
-		grpcServer.JwtAuth,
-		grpcServer.TracerModule,
+		jsonConf.Default,
+		fsrepo.Module,
+		ipfs.Module,
+		locker.Module,
 		grpcServer.Module,
 	)
 

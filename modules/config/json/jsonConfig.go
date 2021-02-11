@@ -2,14 +2,11 @@ package jsonConf
 
 import (
 	"encoding/json"
-	"fmt"
+	"go.uber.org/fx"
 	"io"
 
 	"github.com/aloknerurkar/go-msuite/utils"
-	logger "github.com/ipfs/go-log/v2"
 )
-
-var log = logger.Logger("jsonConfig")
 
 const (
 	ApiPort     = "4341"
@@ -34,17 +31,17 @@ func (j *JsonConfig) Set(key string, val interface{}) {
 	(*j)[key] = val
 }
 
+func (j *JsonConfig) IsSet(key string) bool {
+	return (*j)[key].(bool)
+}
+
+var Default = fx.Option(
+	fx.Provide(DefaultConfig),
+)
+
 func DefaultConfig() *JsonConfig {
 	var conf = make(JsonConfig)
 	conf["SwarmPort"] = SwarmPort
-	conf["APIPort"] = ApiPort
-	conf["GatewayPort"] = GatewayPort
-	conf["SwarmAddrs"] = []string{
-		fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", SwarmPort),
-		fmt.Sprintf("/ip6/::/tcp/%s", SwarmPort),
-	}
-	conf["ReproviderInterval"] = "12h"
-	conf["Store"] = "bolt"
 	return &conf
 }
 

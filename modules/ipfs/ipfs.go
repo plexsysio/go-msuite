@@ -1,13 +1,15 @@
 package ipfs
 
 import (
-	logger "github.com/ipfs/go-log"
 	"go.uber.org/fx"
 )
 
-var P2P = fx.Options(
+var Module = fx.Options(
+	fx.Provide(Identity),
 	fx.Provide(Libp2p),
+	fx.Provide(NewNode),
+	fx.Provide(Pubsub),
+	fx.Provide(NewSvcDiscovery),
+	fx.Provide(NewAntsDB),
 	fx.Invoke(NewMDNSDiscovery),
 )
-
-var log = logger.Logger("libp2p")

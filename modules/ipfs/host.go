@@ -19,7 +19,32 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
-func Libp2p(ctx context.Context, conf config.Config) (host.Host, routing.Routing, error) {
+func Identity(conf config.Config) (crypto.PrivKey, error) {
+	id := map[string]interface{}{}
+	ok := conf.Get("Identity", &id)
+	if !ok {
+		return nil, errors.New("Identity info missing")
+	}
+	privKeyStr, ok := id["PrivKey"]
+	if !ok {
+		return nil, errors.New("Private key missing")
+	}
+	pkBytes, err := base64.StdEncoding.DecodeString(privKeyStr.(string))
+	if err != nil {
+		return nil, err
+	}
+	priv, err := crypto.UnmarshalPrivateKey(pkBytes)
+	if err != nil {
+		return nil, err
+	}
+	return priv, nil
+}
+
+func Libp2p(
+	ctx context.Context,
+	conf config.Config,
+	priv crypto.PrivKey,
+) (host.Host, routing.Routing, error) {
 	var swPort string
 	ok := conf.Get("SwarmPort", &swPort)
 	if !ok {
@@ -34,23 +59,6 @@ func Libp2p(ctx context.Context, conf config.Config) (host.Host, routing.Routing
 		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
 	}
 	listenAddrs := []multiaddr.Multiaddr{tcpAddr, quicAddr}
-	id := map[string]interface{}{}
-	ok = conf.Get("Identity", &id)
-	if !ok {
-		return nil, nil, errors.New("Identity info missing")
-	}
-	privKeyStr, ok := id["PrivKey"]
-	if !ok {
-		return nil, nil, errors.New("Private key missing")
-	}
-	pkBytes, err := base64.StdEncoding.DecodeString(privKeyStr.(string))
-	if err != nil {
-		return nil, nil, err
-	}
-	priv, err := crypto.UnmarshalPrivateKey(pkBytes)
-	if err != nil {
-		return nil, nil, err
-	}
 	return ipfslite.SetupLibp2p(
 		ctx,
 		priv,

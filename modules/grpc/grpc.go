@@ -2,8 +2,13 @@ package grpcServer
 
 import (
 	"context"
+	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/middleware"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/p2pgrpc"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/tcp"
+	"github.com/aloknerurkar/go-msuite/utils"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	logger "github.com/ipfs/go-log"
+	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"net"
@@ -19,15 +24,14 @@ type GrpcServerParams struct {
 }
 
 func New(lc fx.Lifecycle, params GrpcServerParams) (*grpc.Server, error) {
-
 	rpcSrv := grpc.NewServer(params.Opts...)
-
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			log.Info("Starting GRPC server")
 			return rpcSrv.Serve(params.Listnr)
 		},
 		OnStop: func(ctx context.Context) error {
+			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil
 		},
@@ -43,14 +47,30 @@ type ServerOptsParams struct {
 }
 
 func OptsAggregator(params ServerOptsParams) []grpc.ServerOption {
-
+	log.Info("Server opts:", params)
 	outOpts := make([]grpc.ServerOption, 0)
 	outOpts = append(outOpts, grpc_middleware.WithUnaryServerChain(params.UnaryOpts...))
 	outOpts = append(outOpts, grpc_middleware.WithStreamServerChain(params.StreamOpts...))
 	return outOpts
 }
 
+func Transport(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeProvide(tcp.NewTCPListener, c.IsSet("UseTCP")),
+		utils.MaybeProvide(p2pgrpc.NewP2PListener, c.IsSet("UseP2P")),
+	)
+}
+
+func Middleware(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeProvide(mware.JwtAuth, c.IsSet("UseJWT")),
+		utils.MaybeProvide(mware.TracerModule, c.IsSet("UseTracing")),
+	)
+}
+
 var Module = fx.Options(
+	fx.Provide(Transport),
+	fx.Provide(Middleware),
 	fx.Provide(OptsAggregator),
 	fx.Invoke(New),
 )

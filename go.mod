@@ -31,3 +31,5 @@ require (
 	google.golang.org/genproto v0.0.0-20191223191004-3caeed10a8bf
 	google.golang.org/grpc v1.31.1
 )
+
+replace github.com/StreamSpace/ants-db => ../ants-db
