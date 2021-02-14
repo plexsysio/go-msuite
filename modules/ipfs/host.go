@@ -54,11 +54,7 @@ func Libp2p(
 	if err != nil {
 		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
 	}
-	quicAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/quic/%s", swPort))
-	if err != nil {
-		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
-	}
-	listenAddrs := []multiaddr.Multiaddr{tcpAddr, quicAddr}
+	listenAddrs := []multiaddr.Multiaddr{tcpAddr}
 	return ipfslite.SetupLibp2p(
 		ctx,
 		priv,

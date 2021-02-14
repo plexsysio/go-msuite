@@ -20,6 +20,7 @@ require (
 	github.com/libp2p/go-libp2p-core v0.8.0
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
+	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moxiaomomo/grpc-jaeger v0.0.0-20180617090213-05b879580c4a
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-net v0.2.0

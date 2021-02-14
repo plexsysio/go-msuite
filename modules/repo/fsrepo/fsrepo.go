@@ -14,20 +14,9 @@ import (
 	"github.com/ipfs/go-datastore/namespace"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"go.uber.org/fx"
 	"path/filepath"
 	"sync"
 )
-
-var Module = fx.Provide(func(root string, c config.Config) (repo.Repo, error) {
-	if !IsInitialized(root) {
-		err := Init(root, c)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return Open(root)
-})
 
 type repoOpener struct {
 	mtx    sync.Mutex
@@ -146,6 +135,7 @@ func initIdentity(c config.Config) error {
 	}
 	ident["ID"] = id.Pretty()
 	c.Set("Identity", ident)
+	fmt.Println("ID SET")
 	return nil
 }
 
@@ -170,10 +160,13 @@ func Init(path string, c config.Config) error {
 		return wrapError("failed creating directories", err)
 	}
 	// Create new IDs if not provided
-	if !c.Get("Identity", &map[string]interface{}{}) {
+	id := map[string]interface{}{}
+	if !c.Get("Identity", &id) {
 		if err := initIdentity(c); err != nil {
 			return wrapError("failed creating identity", err)
 		}
+	} else {
+		fmt.Println("IDENTITY PRESENT")
 	}
 	// Write the initial config provided
 	err := utils.WriteToFile(c, configPath(path))

@@ -6,7 +6,7 @@ import (
 	"github.com/aloknerurkar/go-msuite/utils"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/mount"
-	"github.com/ipfs/go-ds-badger2"
+	// "github.com/ipfs/go-ds-badger2"
 	"github.com/ipfs/go-ds-flatfs"
 	"github.com/ipfs/go-ds-leveldb"
 	"path/filepath"
@@ -77,8 +77,8 @@ func openDatastoreFromCfg(root string, c config.Config) (mDS ds.Batching, retErr
 		switch k {
 		case "level":
 			newDs, err = leveldb.NewDatastore(path, &leveldb.Options{})
-		case "badger":
-			newDs, err = badger.NewDatastore(path, &badger.DefaultOptions)
+		// case "badger":
+		// 	newDs, err = badger.NewDatastore(path, &badger.DefaultOptions)
 		case "flatfs":
 			sFn, ok := dCfg["shardFunc"].(string)
 			if !ok {

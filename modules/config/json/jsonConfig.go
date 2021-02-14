@@ -2,7 +2,6 @@ package jsonConf
 
 import (
 	"encoding/json"
-	"go.uber.org/fx"
 	"io"
 
 	"github.com/aloknerurkar/go-msuite/utils"
@@ -17,6 +16,10 @@ const (
 type JsonConfig map[string]interface{}
 
 func (j *JsonConfig) Get(key string, val interface{}) bool {
+	_, ok := (*j)[key]
+	if !ok {
+		return false
+	}
 	jsonString, err := json.Marshal((*j)[key])
 	if err != nil {
 		return false
@@ -32,16 +35,15 @@ func (j *JsonConfig) Set(key string, val interface{}) {
 }
 
 func (j *JsonConfig) IsSet(key string) bool {
-	return (*j)[key].(bool)
+	val, ok := (*j)[key]
+	return ok && val.(bool)
 }
-
-var Default = fx.Option(
-	fx.Provide(DefaultConfig),
-)
 
 func DefaultConfig() *JsonConfig {
 	var conf = make(JsonConfig)
 	conf["SwarmPort"] = SwarmPort
+	conf["UseTCP"] = true
+	conf["TCPPort"] = 10000
 	return &conf
 }
 
