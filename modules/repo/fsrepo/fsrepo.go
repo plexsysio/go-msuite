@@ -238,6 +238,16 @@ func open(path string) (repo.Repo, error) {
 	return r, nil
 }
 
+func CreateOrOpen(path string, c config.Config) (repo.Repo, error) {
+	if !IsInitialized(path) {
+		err := Init(path, c)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return Open(path)
+}
+
 func (f *fsRepo) Config() config.Config {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
