@@ -11,6 +11,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/hsanjuan/ipfs-lite v1.1.18
+	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-ds-badger2 v0.1.0
 	github.com/ipfs/go-ds-flatfs v0.4.5

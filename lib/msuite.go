@@ -4,9 +4,11 @@ import (
 	"context"
 	"github.com/StreamSpace/ss-store"
 	"github.com/aloknerurkar/dLocker"
+	"github.com/aloknerurkar/go-msuite/modules/cdn"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/config/json"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
+	"github.com/aloknerurkar/go-msuite/modules/http"
 	"github.com/aloknerurkar/go-msuite/modules/ipfs"
 	"github.com/aloknerurkar/go-msuite/modules/locker"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
@@ -125,6 +127,8 @@ func New(ctx context.Context) (Service, error) {
 		ipfs.Module,
 		locker.Module,
 		grpcServer.Module(r.Config()),
+		http.Module(r.Config()),
+		cdn.Module,
 		fx.Populate(svc),
 	)
 
