@@ -3,17 +3,13 @@ package mware
 import (
 	"context"
 	"errors"
-	"fmt"
-	"github.com/StreamSpace/ss-store"
-	"github.com/aloknerurkar/go-msuite/modules/acl"
+	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/config"
-	"github.com/dgrijalva/jwt-go"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
 var JwtAuth = fx.Options(
@@ -23,15 +19,14 @@ var JwtAuth = fx.Options(
 type JwtAuthOpts struct {
 	fx.Out
 
-	JM *JWTManager
-
 	UOut grpc.UnaryServerInterceptor  `group:"unary_opts"`
 	SOut grpc.StreamServerInterceptor `group:"stream_opts"`
 }
 
 func JwtAuthOptions(
 	conf config.Config,
-	st store.Store,
+	jm *auth.JWTManager,
+	am *auth.AclManager,
 ) (params JwtAuthOpts, err error) {
 	var jwtSecret string
 	ok := conf.Get("JWTSecret", &jwtSecret)
@@ -39,83 +34,22 @@ func JwtAuthOptions(
 		err = errors.New("JWT Secret not provided")
 		return
 	}
-	jm := NewJWTManager(jwtSecret)
-	incp := NewAuthInterceptor(jm, st)
+	incp := NewAuthInterceptor(jm, am)
 
-	params.JM = jm
 	params.UOut = incp.Unary()
 	params.SOut = incp.Stream()
 	return
 }
 
-// JWTManager is a JSON web token manager
-type JWTManager struct {
-	secretKey string
-}
-
-// UserClaims is a custom JWT claims that contains some user's information
-type UserClaims struct {
-	jwt.StandardClaims
-	ID   string `json:"id"`
-	Role string `json:"role"`
-}
-
-type User interface {
-	ID() string
-	Role() string
-}
-
-// NewJWTManager returns a new JWT manager
-func NewJWTManager(secretKey string) *JWTManager {
-	return &JWTManager{secretKey}
-}
-
-// Generate generates and signs a new token for a user
-func (manager *JWTManager) Generate(user User, timeout time.Duration) (string, error) {
-	claims := UserClaims{
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: time.Now().Add(timeout).Unix(),
-		},
-		ID:   user.ID(),
-		Role: user.Role(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(manager.secretKey))
-
-}
-
-// Verify verifies the access token string and return a user claim if the token is valid
-func (manager *JWTManager) Verify(accessToken string) (*UserClaims, error) {
-	token, err := jwt.ParseWithClaims(
-		accessToken,
-		&UserClaims{},
-		func(token *jwt.Token) (interface{}, error) {
-			_, ok := token.Method.(*jwt.SigningMethodHMAC)
-			if !ok {
-				return nil, fmt.Errorf("unexpected token signing method")
-			}
-			return []byte(manager.secretKey), nil
-		},
-	)
-	if err != nil {
-		return nil, fmt.Errorf("invalid token: %w", err)
-	}
-	claims, ok := token.Claims.(*UserClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid token claims")
-	}
-	return claims, nil
-}
-
 // AuthInterceptor is a server interceptor for authentication and authorization
 type AuthInterceptor struct {
-	jwtManager *JWTManager
-	st         store.Store
+	jm *auth.JWTManager
+	am *auth.AclManager
 }
 
 // NewAuthInterceptor returns a new auth interceptor
-func NewAuthInterceptor(jwtManager *JWTManager, st store.Store) *AuthInterceptor {
-	return &AuthInterceptor{jwtManager, st}
+func NewAuthInterceptor(jm *auth.JWTManager, am *auth.AclManager) *AuthInterceptor {
+	return &AuthInterceptor{jm, am}
 }
 
 // Unary returns a server interceptor function to authenticate and authorize unary RPC
@@ -151,11 +85,8 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 }
 
 func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
-	m := &acl.MethodRoles{
-		Method: method,
-	}
-	err := interceptor.st.Read(m)
-	if err != nil {
+	roles := interceptor.am.Allowed(method)
+	if len(roles) == 1 && roles[0] == auth.None {
 		// everyone can access
 		return nil
 	}
@@ -168,12 +99,12 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		return status.Errorf(codes.Unauthenticated, "authorization token is not provided")
 	}
 	accessToken := values[0]
-	claims, err := interceptor.jwtManager.Verify(accessToken)
+	claims, err := interceptor.jm.Verify(accessToken)
 	if err != nil {
 		return status.Errorf(codes.Unauthenticated, "access token is invalid: %v", err)
 	}
-	for _, role := range m.Roles {
-		if role == claims.Role {
+	for _, role := range roles {
+		if string(role) == claims.Role {
 			return nil
 		}
 	}
