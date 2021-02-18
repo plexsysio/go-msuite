@@ -28,6 +28,8 @@ github.com/StreamSpace/ss-ds-store v0.0.4 h1:/MNefEjwZB9NRcY7H4mMr/kEuasrwQ0ss98
 github.com/StreamSpace/ss-ds-store v0.0.4/go.mod h1:tA3UjK+ZDQhxd5ZtBqc3hhDvHKbVZdMzxV2FkrckXgU=
 github.com/StreamSpace/ss-store v0.0.2 h1:rcHZBuPSiuvPtZfIKnimmy2ysTrwRjYCIsEUHxPhsTU=
 github.com/StreamSpace/ss-store v0.0.2/go.mod h1:oG6enJAEaKaHQHSUgmxrv3f3cx26Tn/zPX+Ws6rZawk=
+github.com/StreamSpace/ss-taskmanager v0.0.2 h1:8y+KFXv9ur58ss40FCRtZQ6vkPg7pNxMlZO+HRuoE4o=
+github.com/StreamSpace/ss-taskmanager v0.0.2/go.mod h1:31ua+1VH/TRMxGdGz6QFY7kPiXJkmRL3Ny5eH14XlMk=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
 github.com/alangpierce/go-forceexport v0.0.0-20160317203124-8f1d6941cd75/go.mod h1:uAXEEpARkRhCZfEvy/y0Jcc888f9tHCc1W7/UeEtreE=
 github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 h1:iW0a5ljuFxkLGPNem5Ui+KBjFJzKg4Fv2fnxe4dvzpM=

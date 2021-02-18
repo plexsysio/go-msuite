@@ -4,10 +4,13 @@ import (
 	"context"
 	"github.com/StreamSpace/ss-store"
 	"github.com/aloknerurkar/dLocker"
+	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/cdn"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/config/json"
+	"github.com/aloknerurkar/go-msuite/modules/events"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/client"
 	"github.com/aloknerurkar/go-msuite/modules/http"
 	"github.com/aloknerurkar/go-msuite/modules/ipfs"
 	"github.com/aloknerurkar/go-msuite/modules/locker"
@@ -103,8 +106,6 @@ func (s *impl) GRPCServer() *grpc.Server {
 }
 
 func New(ctx context.Context) (Service, error) {
-	ctx, cancel := context.WithCancel(ctx)
-
 	hd, err := homedir.Dir()
 	if err != nil {
 		return nil, err
@@ -114,21 +115,23 @@ func New(ctx context.Context) (Service, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	svc := &impl{}
 
 	app := fx.New(
 		fx.Provide(func() (context.Context, context.CancelFunc) {
-			return ctx, cancel
+			return context.WithCancel(ctx)
 		}),
 		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
 			return r, r.Config(), r.Datastore()
 		}),
 		ipfs.Module,
 		locker.Module,
+		auth.Module(r.Config()),
 		grpcServer.Module(r.Config()),
 		http.Module(r.Config()),
 		cdn.Module,
+		grpcclient.Module,
+		events.Module,
 		fx.Populate(svc),
 	)
 

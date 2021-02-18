@@ -6,6 +6,7 @@ require (
 	github.com/StreamSpace/ants-db v0.0.2
 	github.com/StreamSpace/ss-ds-store v0.0.4
 	github.com/StreamSpace/ss-store v0.0.2
+	github.com/StreamSpace/ss-taskmanager v0.0.2
 	github.com/aloknerurkar/dLocker v0.0.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
