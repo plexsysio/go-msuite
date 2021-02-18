@@ -3,6 +3,7 @@ package locker
 import (
 	"errors"
 	"github.com/aloknerurkar/dLocker"
+	inmem "github.com/aloknerurkar/dLocker/handlers/memlock"
 	rd "github.com/aloknerurkar/dLocker/handlers/redis"
 	zk "github.com/aloknerurkar/dLocker/handlers/zookeeper"
 	"github.com/aloknerurkar/go-msuite/modules/config"
@@ -15,11 +16,13 @@ var Module = fx.Options(
 
 func NewLocker(c config.Config) (dLocker.DLocker, error) {
 	var lk string
-	ok := c.Get("Locker", lk)
+	ok := c.Get("Locker", &lk)
 	if !ok {
 		return nil, errors.New("Locker not configured")
 	}
 	switch lk {
+	case "inmem":
+		return inmem.NewLocker(), nil
 	case "zookeeper":
 		var host string
 		var port int

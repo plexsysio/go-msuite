@@ -3,6 +3,7 @@ package msuite
 import (
 	"context"
 	"github.com/StreamSpace/ss-store"
+	"github.com/StreamSpace/ss-taskmanager"
 	"github.com/aloknerurkar/dLocker"
 	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/cdn"
@@ -11,13 +12,14 @@ import (
 	"github.com/aloknerurkar/go-msuite/modules/events"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/client"
-	"github.com/aloknerurkar/go-msuite/modules/http"
+	mhttp "github.com/aloknerurkar/go-msuite/modules/http"
 	"github.com/aloknerurkar/go-msuite/modules/ipfs"
 	"github.com/aloknerurkar/go-msuite/modules/locker"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
 	"github.com/aloknerurkar/go-msuite/modules/repo/fsrepo"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
+	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
@@ -25,6 +27,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -49,44 +52,58 @@ type Node interface {
 	Discovery() discovery.Discovery
 }
 
-type impl struct {
-	*fx.App
-	pCtx   context.Context
-	cancel context.CancelFunc
+type FxLog struct{}
 
-	r    repo.Repo
-	h    host.Host
-	dht  routing.Routing
-	p    *ipfslite.Peer
-	ps   *pubsub.PubSub
-	disc discovery.Discovery
-	st   store.Store
-	l    dLocker.DLocker
-	rsrv *grpc.Server
+var log = logger.Logger("Boot")
+
+func (f *FxLog) Printf(msg string, args ...interface{}) {
+	log.Infof(msg, args...)
+}
+
+type impl struct {
+	fx.In
+
+	*fx.App `optional:"true"`
+	Ctx     context.Context
+	Cancel  context.CancelFunc
+
+	R    repo.Repo
+	H    host.Host
+	Dht  routing.Routing
+	P    *ipfslite.Peer
+	Ps   *pubsub.PubSub
+	Disc discovery.Discovery
+	St   store.Store
+	Lk   dLocker.DLocker
+	Rsrv *grpc.Server
+	Tm   *taskmanager.TaskManager
+	Ev   events.Events
+	Cs   *grpcclient.ClientSvc
+	Mx   *http.ServeMux
 }
 
 func (s *impl) Repo() repo.Repo {
-	return s.r
+	return s.R
 }
 
 func (s *impl) Host() host.Host {
-	return s.h
+	return s.H
 }
 
 func (s *impl) Routing() routing.Routing {
-	return s.dht
+	return s.Dht
 }
 
 func (s *impl) Peer() *ipfslite.Peer {
-	return s.p
+	return s.P
 }
 
 func (s *impl) Pubsub() *pubsub.PubSub {
-	return s.ps
+	return s.Ps
 }
 
 func (s *impl) Discovery() discovery.Discovery {
-	return s.disc
+	return s.Disc
 }
 
 func (s *impl) Node() Node {
@@ -94,15 +111,15 @@ func (s *impl) Node() Node {
 }
 
 func (s *impl) Storage() store.Store {
-	return s.st
+	return s.St
 }
 
 func (s *impl) Locker() dLocker.DLocker {
-	return s.l
+	return s.Lk
 }
 
 func (s *impl) GRPCServer() *grpc.Server {
-	return s.rsrv
+	return s.Rsrv
 }
 
 func New(ctx context.Context) (Service, error) {
@@ -118,17 +135,21 @@ func New(ctx context.Context) (Service, error) {
 	svc := &impl{}
 
 	app := fx.New(
+		fx.Logger(&FxLog{}),
 		fx.Provide(func() (context.Context, context.CancelFunc) {
 			return context.WithCancel(ctx)
 		}),
 		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
 			return r, r.Config(), r.Datastore()
 		}),
+		fx.Provide(func(ctx context.Context) *taskmanager.TaskManager {
+			return taskmanager.NewTaskManager(ctx, 10)
+		}),
 		ipfs.Module,
 		locker.Module,
 		auth.Module(r.Config()),
 		grpcServer.Module(r.Config()),
-		http.Module(r.Config()),
+		mhttp.Module(r.Config()),
 		cdn.Module,
 		grpcclient.Module,
 		events.Module,

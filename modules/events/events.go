@@ -119,6 +119,11 @@ func (e *eventsListener) Name() string {
 
 func (e *eventsListener) Execute(ctx context.Context) error {
 	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
 		msg, err := e.sub.Next(ctx)
 		if err != nil {
 			log.Errorf("Failed getting next pubsub msg Err:%s", err.Error())

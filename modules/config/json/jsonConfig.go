@@ -44,6 +44,9 @@ func DefaultConfig() *JsonConfig {
 	conf["SwarmPort"] = SwarmPort
 	conf["UseTCP"] = true
 	conf["TCPPort"] = 10000
+	conf["UseHTTP"] = true
+	conf["HTTPPort"] = 10001
+	conf["Locker"] = "inmem"
 	return &conf
 }
 

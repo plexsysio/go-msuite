@@ -76,6 +76,6 @@ var Module = func(c config.Config) fx.Option {
 		Transport(c),
 		Middleware(c),
 		fx.Provide(OptsAggregator),
-		fx.Invoke(New),
+		fx.Provide(New),
 	)
 }
