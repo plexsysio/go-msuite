@@ -7,6 +7,13 @@ import (
 
 type Role string
 
+type ACL interface {
+	Configure(rsc string, role Role) error
+	Delete(rsc string) error
+	Authorized(rsc string, role Role) bool
+	Allowed(rsc string) []Role
+}
+
 const (
 	None        Role = "none"
 	PublicRead  Role = "public_read"
@@ -64,15 +71,15 @@ func (m *Acl) Unmarshal(b []byte) error {
 	return json.Unmarshal(b, m)
 }
 
-type AclManager struct {
+type aclManager struct {
 	st store.Store
 }
 
-func NewAclManager(st store.Store) *AclManager {
-	return &AclManager{st}
+func NewAclManager(st store.Store) ACL {
+	return &aclManager{st}
 }
 
-func (a *AclManager) Configure(rsc string, role Role) error {
+func (a *aclManager) Configure(rsc string, role Role) error {
 	nacl := &Acl{
 		Key:   rsc,
 		Roles: aclMap[role],
@@ -80,14 +87,14 @@ func (a *AclManager) Configure(rsc string, role Role) error {
 	return a.st.Update(nacl)
 }
 
-func (a *AclManager) Delete(rsc string) error {
+func (a *aclManager) Delete(rsc string) error {
 	nacl := &Acl{
 		Key: rsc,
 	}
 	return a.st.Delete(nacl)
 }
 
-func (a *AclManager) Authorized(rsc string, role Role) bool {
+func (a *aclManager) Authorized(rsc string, role Role) bool {
 	nacl := &Acl{
 		Key: rsc,
 	}
@@ -99,7 +106,7 @@ func (a *AclManager) Authorized(rsc string, role Role) bool {
 	return aclMap[role] >= nacl.Roles
 }
 
-func (a *AclManager) Allowed(rsc string) []Role {
+func (a *aclManager) Allowed(rsc string) []Role {
 	nacl := &Acl{
 		Key: rsc,
 	}

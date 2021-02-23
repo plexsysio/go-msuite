@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	logger "github.com/ipfs/go-log/v2"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
+
+var log = logger.Logger("grpc/tracer")
 
 var TracerModule = fx.Options(
 	fx.Provide(JaegerTracerOptions),
@@ -38,10 +41,11 @@ func JaegerTracerOptions(
 	}
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
+			defer log.Info("Stopped tracer")
 			return closer.Close()
 		},
 	})
-	// log.Info("Registering Jaeger tracer options")
+	log.Info("Registering Jaeger tracer options")
 	params.UOut = gtrace.ServerInterceptor(tracer)
 	return
 }

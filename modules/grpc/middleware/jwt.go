@@ -25,8 +25,8 @@ type JwtAuthOpts struct {
 
 func JwtAuthOptions(
 	conf config.Config,
-	jm *auth.JWTManager,
-	am *auth.AclManager,
+	jm auth.JWTManager,
+	am auth.ACL,
 ) (params JwtAuthOpts, err error) {
 	var jwtSecret string
 	ok := conf.Get("JWTSecret", &jwtSecret)
@@ -43,12 +43,12 @@ func JwtAuthOptions(
 
 // AuthInterceptor is a server interceptor for authentication and authorization
 type AuthInterceptor struct {
-	jm *auth.JWTManager
-	am *auth.AclManager
+	jm auth.JWTManager
+	am auth.ACL
 }
 
 // NewAuthInterceptor returns a new auth interceptor
-func NewAuthInterceptor(jm *auth.JWTManager, am *auth.AclManager) *AuthInterceptor {
+func NewAuthInterceptor(jm auth.JWTManager, am auth.ACL) *AuthInterceptor {
 	return &AuthInterceptor{jm, am}
 }
 

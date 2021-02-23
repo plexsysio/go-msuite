@@ -63,6 +63,7 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 		for _, s := range svcs {
 			select {
 			case <-ctx.Done():
+				log.Info("Stopping advertiser")
 				return nil
 			default:
 			}
@@ -76,6 +77,7 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():
+			log.Info("Stopping advertiser")
 			return nil
 		}
 	}

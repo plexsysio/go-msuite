@@ -28,29 +28,8 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"net/http"
-	"os"
 	"path/filepath"
 )
-
-type Service interface {
-	Start(context.Context) error
-	Stop(context.Context) error
-	Done() <-chan os.Signal
-
-	Node() Node
-	Storage() store.Store
-	Locker() dLocker.DLocker
-	GRPCServer() *grpc.Server
-}
-
-type Node interface {
-	Repo() repo.Repo
-	Host() host.Host
-	Routing() routing.Routing
-	Peer() *ipfslite.Peer
-	Pubsub() *pubsub.PubSub
-	Discovery() discovery.Discovery
-}
 
 type FxLog struct{}
 
@@ -58,68 +37,6 @@ var log = logger.Logger("Boot")
 
 func (f *FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
-}
-
-type impl struct {
-	fx.In
-
-	*fx.App `optional:"true"`
-	Ctx     context.Context
-	Cancel  context.CancelFunc
-
-	R    repo.Repo
-	H    host.Host
-	Dht  routing.Routing
-	P    *ipfslite.Peer
-	Ps   *pubsub.PubSub
-	Disc discovery.Discovery
-	St   store.Store
-	Lk   dLocker.DLocker
-	Rsrv *grpc.Server
-	Tm   *taskmanager.TaskManager
-	Ev   events.Events
-	Cs   *grpcclient.ClientSvc
-	Mx   *http.ServeMux
-}
-
-func (s *impl) Repo() repo.Repo {
-	return s.R
-}
-
-func (s *impl) Host() host.Host {
-	return s.H
-}
-
-func (s *impl) Routing() routing.Routing {
-	return s.Dht
-}
-
-func (s *impl) Peer() *ipfslite.Peer {
-	return s.P
-}
-
-func (s *impl) Pubsub() *pubsub.PubSub {
-	return s.Ps
-}
-
-func (s *impl) Discovery() discovery.Discovery {
-	return s.Disc
-}
-
-func (s *impl) Node() Node {
-	return s
-}
-
-func (s *impl) Storage() store.Store {
-	return s.St
-}
-
-func (s *impl) Locker() dLocker.DLocker {
-	return s.Lk
-}
-
-func (s *impl) GRPCServer() *grpc.Server {
-	return s.Rsrv
 }
 
 func New(ctx context.Context) (Service, error) {
@@ -153,9 +70,132 @@ func New(ctx context.Context) (Service, error) {
 		cdn.Module,
 		grpcclient.Module,
 		events.Module,
+		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
+			lc.Append(fx.Hook{
+				OnStop: func(c context.Context) error {
+					cancel()
+					r.Close()
+					return nil
+				},
+			})
+		}),
 		fx.Populate(svc),
 	)
 
 	svc.App = app
 	return svc, nil
+}
+
+type impl struct {
+	fx.In
+
+	*fx.App `optional:"true"`
+	Ctx     context.Context
+	Cancel  context.CancelFunc
+
+	R    repo.Repo
+	H    host.Host
+	Dht  routing.Routing
+	P    *ipfslite.Peer
+	Ps   *pubsub.PubSub
+	Disc discovery.Discovery
+	St   store.Store
+	Jm   auth.JWTManager
+	Am   auth.ACL
+	Lk   dLocker.DLocker
+	Rsrv *grpc.Server
+	Tm   *taskmanager.TaskManager
+	Ev   events.Events
+	Cs   *grpcclient.ClientSvc
+	Mx   *http.ServeMux
+}
+
+// Node API
+func (s *impl) Node() Node {
+	return s
+}
+
+func (s *impl) Repo() repo.Repo {
+	return s.R
+}
+
+// Storage API
+func (s *impl) Storage() Storage {
+	return s
+}
+
+func (s *impl) Local() store.Store {
+	return s.R.Store()
+}
+
+func (s *impl) Shared() store.Store {
+	return s.St
+}
+
+// P2P API
+func (s *impl) P2P() P2P {
+	return s
+}
+
+func (s *impl) Host() host.Host {
+	return s.H
+}
+
+func (s *impl) Routing() routing.Routing {
+	return s.Dht
+}
+
+func (s *impl) Discovery() discovery.Discovery {
+	return s.Disc
+}
+
+// Pubsub API
+func (s *impl) Pubsub() *pubsub.PubSub {
+	return s.Ps
+}
+
+// IPFS API
+func (s *impl) IPFS() *ipfslite.Peer {
+	return s.P
+}
+
+// Auth API
+func (s *impl) Auth() Auth {
+	return s
+}
+
+func (s *impl) JWT() auth.JWTManager {
+	return s.Jm
+}
+
+func (s *impl) ACL() auth.ACL {
+	return s.Am
+}
+
+func (s *impl) GRPC() GRPC {
+	return s
+}
+
+func (s *impl) Server() *grpc.Server {
+	return s.Rsrv
+}
+
+func (s *impl) Client(ctx context.Context, name string) (grpcclient.Client, error) {
+	return s.Cs.NewClient(ctx, name)
+}
+
+func (s *impl) HTTP() HTTP {
+	return s
+}
+
+func (s *impl) Mux() *http.ServeMux {
+	return s.Mx
+}
+
+func (s *impl) Locker() dLocker.DLocker {
+	return s.Lk
+}
+
+func (s *impl) Events() events.Events {
+	return s.Ev
 }

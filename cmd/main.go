@@ -24,6 +24,5 @@ func main() {
 		return
 	}
 	<-app.Done()
-	cancel()
 	_ = app.Stop(ctx)
 }

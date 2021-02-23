@@ -1,34 +1,33 @@
 package tcp
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
 	logger "github.com/ipfs/go-log/v2"
-	"go.uber.org/fx"
 	"net"
 )
 
 var log = logger.Logger("transport/tcp")
 
-func NewTCPListener(lc fx.Lifecycle, conf config.Config) (net.Listener, error) {
+func NewTCPListener(conf config.Config) (grpcmux.MuxListenerOut, error) {
 	var portVal int
 	ok := conf.Get("TCPPort", &portVal)
 	if !ok {
-		return nil, errors.New("Port absent")
+		log.Error("TCPPort missing")
+		return grpcmux.MuxListenerOut{}, errors.New("Port absent")
 	}
 	log.Info("Starting TCP listener on port", portVal)
 	listnr, err := net.Listen("tcp", fmt.Sprintf(":%d", portVal))
 	if err != nil {
-		return nil, err
+		log.Errorf("Failed starting TCP listener Err:%s", err.Error())
+		return grpcmux.MuxListenerOut{}, err
 	}
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			log.Info("Stopping listener")
-			listnr.Close()
-			return nil
+	return grpcmux.MuxListenerOut{
+		Listener: grpcmux.MuxListener{
+			Tag:      "TCP",
+			Listener: listnr,
 		},
-	})
-	return listnr, nil
+	}, nil
 }

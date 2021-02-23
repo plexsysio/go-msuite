@@ -121,6 +121,7 @@ func (e *eventsListener) Execute(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
+			log.Info("Stopping event listener")
 			return nil
 		default:
 		}

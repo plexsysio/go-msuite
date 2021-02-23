@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/middleware"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/p2pgrpc"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/tcp"
 	"github.com/aloknerurkar/go-msuite/utils"
@@ -12,7 +13,6 @@ import (
 	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
-	"net"
 )
 
 var log = logger.Logger("grpc_service")
@@ -21,15 +21,21 @@ type GrpcServerParams struct {
 	fx.In
 
 	Opts   []grpc.ServerOption
-	Listnr net.Listener
+	Listnr *grpcmux.Mux
 }
 
 func New(lc fx.Lifecycle, params GrpcServerParams) (*grpc.Server, error) {
 	rpcSrv := grpc.NewServer(params.Opts...)
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			log.Info("Starting GRPC server")
-			return rpcSrv.Serve(params.Listnr)
+			go func() {
+				log.Info("Starting GRPC server")
+				err := rpcSrv.Serve(params.Listnr)
+				if err != nil {
+					log.Error("Failed to serve gRPC", err.Error())
+				}
+			}()
+			return nil
 		},
 		OnStop: func(ctx context.Context) error {
 			log.Info("Stopping GRPC server")
@@ -75,6 +81,7 @@ var Module = func(c config.Config) fx.Option {
 	return fx.Options(
 		Transport(c),
 		Middleware(c),
+		grpcmux.Module,
 		fx.Provide(OptsAggregator),
 		fx.Provide(New),
 	)

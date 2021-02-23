@@ -6,11 +6,6 @@ import (
 	"time"
 )
 
-// JWTManager is a JSON web token manager
-type JWTManager struct {
-	secretKey string
-}
-
 // UserClaims is a custom JWT claims that contains some user's information
 type UserClaims struct {
 	jwt.StandardClaims
@@ -23,13 +18,23 @@ type User interface {
 	Role() string
 }
 
+type JWTManager interface {
+	Generate(user User, timeout time.Duration) (string, error)
+	Verify(accessToken string) (*UserClaims, error)
+}
+
+// JWTManager is a JSON web token manager
+type jwtManager struct {
+	secretKey string
+}
+
 // NewJWTManager returns a new JWT manager
-func NewJWTManager(secretKey string) *JWTManager {
-	return &JWTManager{secretKey}
+func NewJWTManager(secretKey string) JWTManager {
+	return &jwtManager{secretKey}
 }
 
 // Generate generates and signs a new token for a user
-func (manager *JWTManager) Generate(user User, timeout time.Duration) (string, error) {
+func (manager *jwtManager) Generate(user User, timeout time.Duration) (string, error) {
 	claims := UserClaims{
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: time.Now().Add(timeout).Unix(),
@@ -43,7 +48,7 @@ func (manager *JWTManager) Generate(user User, timeout time.Duration) (string, e
 }
 
 // Verify verifies the access token string and return a user claim if the token is valid
-func (manager *JWTManager) Verify(accessToken string) (*UserClaims, error) {
+func (manager *jwtManager) Verify(accessToken string) (*UserClaims, error) {
 	token, err := jwt.ParseWithClaims(
 		accessToken,
 		&UserClaims{},
