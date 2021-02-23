@@ -100,7 +100,7 @@ type impl struct {
 	Ps   *pubsub.PubSub
 	Disc discovery.Discovery
 	St   store.Store
-	Jm   auth.JWTManager
+	Jm   auth.JWTManager `optional:"true"`
 	Am   auth.ACL
 	Lk   dLocker.DLocker
 	Rsrv *grpc.Server
