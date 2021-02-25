@@ -2,6 +2,7 @@ package msuite
 
 import (
 	"context"
+	"encoding/base64"
 	"github.com/StreamSpace/ss-store"
 	"github.com/StreamSpace/ss-taskmanager"
 	"github.com/aloknerurkar/dLocker"
@@ -20,8 +21,10 @@ import (
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
+	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/mitchellh/go-homedir"
@@ -39,7 +42,74 @@ func (f *FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
 }
 
-func New(ctx context.Context) (Service, error) {
+type BuildCfg struct {
+	cfg  config.Config
+	root string
+}
+
+type Option func(c BuildCfg)
+
+func WithGRPCTCPListener(port int) Option {
+	return func(c BuildCfg) {
+		c.cfg.Set("UseTCP", true)
+		c.cfg.Set("TCPPort", port)
+	}
+}
+
+func WithJWT(secret string) Option {
+	return func(c BuildCfg) {
+		c.cfg.Set("UseJWT", true)
+		c.cfg.Set("JWTSecret", secret)
+	}
+}
+
+func WithTracing(name, host string) Option {
+	return func(c BuildCfg) {
+		c.cfg.Set("UseTracing", true)
+		c.cfg.Set("TracingName", name)
+		c.cfg.Set("TracingHost", host)
+	}
+}
+
+func WithHTTP(port int) Option {
+	return func(c BuildCfg) {
+		c.cfg.Set("UseHTTP", true)
+		c.cfg.Set("HTTPPort", port)
+	}
+}
+
+func WithP2PPrivateKey(key crypto.PrivKey) Option {
+	return func(c BuildCfg) {
+		skbytes, err := key.Bytes()
+		if err != nil {
+			return
+		}
+		ident := map[string]interface{}{}
+		ident["PrivKey"] = base64.StdEncoding.EncodeToString(skbytes)
+
+		id, err := peer.IDFromPublicKey(key.GetPublic())
+		if err != nil {
+			return
+		}
+		ident["ID"] = id.Pretty()
+		c.cfg.Set("Identity", ident)
+	}
+}
+
+func WithP2PPort(port int) Option {
+	return func(c BuildCfg) {
+		c.cfg.Set("UseP2P", true)
+		c.cfg.Set("SwarmPort", port)
+	}
+}
+
+func WithRepositoryRoot(path string) Option {
+	return func(c BuildCfg) {
+		c.root = path
+	}
+}
+
+func New() (Service, error) {
 	hd, err := homedir.Dir()
 	if err != nil {
 		return nil, err
@@ -54,7 +124,7 @@ func New(ctx context.Context) (Service, error) {
 	app := fx.New(
 		fx.Logger(&FxLog{}),
 		fx.Provide(func() (context.Context, context.CancelFunc) {
-			return context.WithCancel(ctx)
+			return context.WithCancel(context.Background())
 		}),
 		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
 			return r, r.Config(), r.Datastore()

@@ -1,7 +1,9 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
+	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )
@@ -29,8 +31,13 @@ type jwtManager struct {
 }
 
 // NewJWTManager returns a new JWT manager
-func NewJWTManager(secretKey string) JWTManager {
-	return &jwtManager{secretKey}
+func NewJWTManager(c config.Config) (JWTManager, error) {
+	var jwtSecret string
+	ok := c.Get("JWTSecret", &jwtSecret)
+	if !ok {
+		return nil, errors.New("JWT Secret not provided")
+	}
+	return &jwtManager{jwtSecret}, nil
 }
 
 // Generate generates and signs a new token for a user

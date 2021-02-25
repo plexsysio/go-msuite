@@ -2,9 +2,7 @@ package mware
 
 import (
 	"context"
-	"errors"
 	"github.com/aloknerurkar/go-msuite/modules/auth"
-	"github.com/aloknerurkar/go-msuite/modules/config"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -24,18 +22,10 @@ type JwtAuthOpts struct {
 }
 
 func JwtAuthOptions(
-	conf config.Config,
 	jm auth.JWTManager,
 	am auth.ACL,
 ) (params JwtAuthOpts, err error) {
-	var jwtSecret string
-	ok := conf.Get("JWTSecret", &jwtSecret)
-	if !ok {
-		err = errors.New("JWT Secret not provided")
-		return
-	}
 	incp := NewAuthInterceptor(jm, am)
-
 	params.UOut = incp.Unary()
 	params.SOut = incp.Stream()
 	return
