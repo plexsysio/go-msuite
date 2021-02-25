@@ -11,7 +11,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
-	"sync"
 	"time"
 )
 
@@ -19,36 +18,29 @@ var Module = fx.Provide(NewClientService)
 
 var log = logger.Logger("grpc/client")
 
-type Client interface {
+type ClientSvc interface {
 	Get(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error)
 }
 
 func NewClientService(
+	svcName string,
 	d discovery.Discovery,
 	h host.Host,
 	tm *taskmanager.TaskManager,
-) *ClientSvc {
-	csvc := &ClientSvc{
-		d:    d,
-		h:    h,
-		svcs: []string{},
+) ClientSvc {
+	csvc := &clientImpl{
+		ds:  d,
+		h:   h,
+		svc: svcName,
 	}
 	// Start discovery provider
-	dp := &discoveryProvider{ds: d, impl: csvc}
+	dp := &discoveryProvider{impl: csvc}
 	tm.GoWork(dp)
 	return csvc
 }
 
-type ClientSvc struct {
-	d    discovery.Discovery
-	h    host.Host
-	svcs []string
-	mtx  sync.Mutex
-}
-
 type discoveryProvider struct {
-	ds   discovery.Discovery
-	impl *ClientSvc
+	impl *clientImpl
 }
 
 func (d *discoveryProvider) Name() string {
@@ -57,20 +49,15 @@ func (d *discoveryProvider) Name() string {
 
 func (d *discoveryProvider) Execute(ctx context.Context) error {
 	for {
-		ttl := time.Minute * 15
-		svcs := d.impl.getSvcs()
-		log.Infof("Advertising services No. of Svcs:%d", len(svcs))
-		for _, s := range svcs {
+		log.Infof("Advertising service: %s", d.impl.svc)
+		ttl, err := d.impl.ds.Advertise(ctx, d.impl.svc, discovery.TTL(time.Minute*15))
+		if err != nil {
+			log.Debugf("Error advertising %s: %s", d.impl.svc, err.Error())
 			select {
-			case <-ctx.Done():
-				log.Info("Stopping advertiser")
-				return nil
-			default:
-			}
-			_, err := d.ds.Advertise(ctx, s, discovery.TTL(ttl))
-			if err != nil {
-				log.Debugf("Error advertising %s: %s", s, err.Error())
+			case <-time.After(time.Minute * 2):
 				continue
+			case <-ctx.Done():
+				return nil
 			}
 		}
 		wait := 7 * ttl / 8
@@ -83,27 +70,10 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 	}
 }
 
-func (c *ClientSvc) getSvcs() []string {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	cl := make([]string, len(c.svcs))
-	copy(cl, c.svcs)
-	return cl
-}
-
-func (c *ClientSvc) NewClient(
-	ctx context.Context,
-	name string,
-) (Client, error) {
-	c.mtx.Lock()
-	defer c.mtx.Unlock()
-	c.svcs = append(c.svcs, name)
-	return &clientImpl{ds: c.d, h: c.h}, nil
-}
-
 type clientImpl struct {
-	ds discovery.Discovery
-	h  host.Host
+	ds  discovery.Discovery
+	h   host.Host
+	svc string
 }
 
 func (c *clientImpl) Get(

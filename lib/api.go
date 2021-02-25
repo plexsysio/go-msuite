@@ -3,10 +3,10 @@ package msuite
 import (
 	"context"
 	"github.com/StreamSpace/ss-store"
+	"github.com/StreamSpace/ss-taskmanager"
 	"github.com/aloknerurkar/dLocker"
 	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/events"
-	"github.com/aloknerurkar/go-msuite/modules/grpc/client"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
@@ -23,17 +23,18 @@ type Service interface {
 	Stop(context.Context) error
 	Done() <-chan os.Signal
 
-	Node() Node
+	Repo() repo.Repo
 	Auth() Auth
-	GRPC() GRPC
-	HTTP() HTTP
-	Locker() dLocker.DLocker
-	Events() events.Events
+	TM() (*taskmanager.TaskManager, error)
+	Node() (Node, error)
+	GRPC() (GRPC, error)
+	HTTP() (HTTP, error)
+	Locker() (dLocker.DLocker, error)
+	Events() (events.Events, error)
 }
 
 type Node interface {
-	Repo() repo.Repo
-	Storage() Storage
+	Storage() store.Store
 	P2P() P2P
 	Pubsub() *pubsub.PubSub
 	IPFS() *ipfslite.Peer
@@ -51,14 +52,13 @@ type Storage interface {
 }
 
 type Auth interface {
-	JWT() auth.JWTManager
-	ACL() auth.ACL
+	JWT() (auth.JWTManager, error)
+	ACL() (auth.ACL, error)
 }
 
 type GRPC interface {
 	Server() *grpc.Server
-	Client(context.Context, string) (grpcclient.Client, error)
-	// Gateway() *runtime.ServeMux
+	Client(context.Context, string) (*grpc.ClientConn, error)
 }
 
 type HTTP interface {

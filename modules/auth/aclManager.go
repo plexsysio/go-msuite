@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"github.com/StreamSpace/ss-store"
+	"github.com/aloknerurkar/go-msuite/modules/repo"
 )
 
 type Role string
@@ -75,8 +76,8 @@ type aclManager struct {
 	st store.Store
 }
 
-func NewAclManager(st store.Store) ACL {
-	return &aclManager{st}
+func NewAclManager(r repo.Repo) ACL {
+	return &aclManager{r.Store()}
 }
 
 func (a *aclManager) Configure(rsc string, role Role) error {

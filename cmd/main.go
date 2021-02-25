@@ -12,9 +12,9 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	app, err := msuite.New(ctx)
+	app, err := msuite.New()
 	if err != nil {
-		fmt.Println("Failed creating msuite service")
+		fmt.Println("Failed creating msuite service", err.Error())
 	}
 	fmt.Println("Starting")
 	err = app.Start(ctx)

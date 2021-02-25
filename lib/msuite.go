@@ -3,11 +3,11 @@ package msuite
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"github.com/StreamSpace/ss-store"
 	"github.com/StreamSpace/ss-taskmanager"
 	"github.com/aloknerurkar/dLocker"
 	"github.com/aloknerurkar/go-msuite/modules/auth"
-	"github.com/aloknerurkar/go-msuite/modules/cdn"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/config/json"
 	"github.com/aloknerurkar/go-msuite/modules/events"
@@ -18,6 +18,7 @@ import (
 	"github.com/aloknerurkar/go-msuite/modules/locker"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
 	"github.com/aloknerurkar/go-msuite/modules/repo/fsrepo"
+	"github.com/aloknerurkar/go-msuite/utils"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
@@ -43,28 +44,30 @@ func (f *FxLog) Printf(msg string, args ...interface{}) {
 }
 
 type BuildCfg struct {
-	cfg  config.Config
-	root string
+	cfg     config.Config
+	root    string
+	svcName string
+	tmCount int
 }
 
-type Option func(c BuildCfg)
+type Option func(c *BuildCfg)
 
 func WithGRPCTCPListener(port int) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		c.cfg.Set("UseTCP", true)
 		c.cfg.Set("TCPPort", port)
 	}
 }
 
 func WithJWT(secret string) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		c.cfg.Set("UseJWT", true)
 		c.cfg.Set("JWTSecret", secret)
 	}
 }
 
 func WithTracing(name, host string) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		c.cfg.Set("UseTracing", true)
 		c.cfg.Set("TracingName", name)
 		c.cfg.Set("TracingHost", host)
@@ -72,14 +75,23 @@ func WithTracing(name, host string) Option {
 }
 
 func WithHTTP(port int) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		c.cfg.Set("UseHTTP", true)
 		c.cfg.Set("HTTPPort", port)
 	}
 }
 
+func WithLocker(lkr string, cfg map[string]string) Option {
+	return func(c *BuildCfg) {
+		c.cfg.Set("UseLocker", true)
+		for k, v := range cfg {
+			c.cfg.Set(k, v)
+		}
+	}
+}
+
 func WithP2PPrivateKey(key crypto.PrivKey) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		skbytes, err := key.Bytes()
 		if err != nil {
 			return
@@ -97,25 +109,68 @@ func WithP2PPrivateKey(key crypto.PrivKey) Option {
 }
 
 func WithP2PPort(port int) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		c.cfg.Set("UseP2P", true)
 		c.cfg.Set("SwarmPort", port)
 	}
 }
 
 func WithRepositoryRoot(path string) Option {
-	return func(c BuildCfg) {
+	return func(c *BuildCfg) {
 		c.root = path
 	}
 }
 
-func New() (Service, error) {
-	hd, err := homedir.Dir()
-	if err != nil {
-		return nil, err
+func WithServiceName(name string) Option {
+	return func(c *BuildCfg) {
+		c.svcName = name
 	}
-	rootPath := filepath.Join(hd, ".msuite")
-	r, err := fsrepo.CreateOrOpen(rootPath, jsonConf.DefaultConfig())
+}
+
+func WithServiceACL(acl map[string]string) Option {
+	return func(c *BuildCfg) {
+		c.cfg.Set("UseACL", true)
+		c.cfg.Set("ACL", acl)
+	}
+}
+
+func WithTaskManager(count int) Option {
+	return func(c *BuildCfg) {
+		c.tmCount = count
+	}
+}
+
+func defaultOpts(c *BuildCfg) {
+	if len(c.svcName) == 0 {
+		c.svcName = "msuite"
+	}
+	if len(c.root) == 0 {
+		hd, err := homedir.Dir()
+		if err != nil {
+			panic("Unable to determine home directory")
+		}
+		c.root = filepath.Join(hd, ".msuite")
+	}
+	if c.cfg.IsSet("UseP2P") || c.cfg.IsSet("UseTCP") {
+		c.tmCount += 1
+		if c.cfg.IsSet("UseTCP") {
+			c.tmCount += 1
+		}
+		if c.cfg.IsSet("UseP2P") {
+			c.tmCount += 2
+		}
+	}
+}
+
+func New(opts ...Option) (Service, error) {
+	bCfg := &BuildCfg{
+		cfg: jsonConf.DefaultConfig(),
+	}
+	for _, opt := range opts {
+		opt(bCfg)
+	}
+	defaultOpts(bCfg)
+	r, err := fsrepo.CreateOrOpen(bCfg.root, bCfg.cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -129,17 +184,20 @@ func New() (Service, error) {
 		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
 			return r, r.Config(), r.Datastore()
 		}),
-		fx.Provide(func(ctx context.Context) *taskmanager.TaskManager {
-			return taskmanager.NewTaskManager(ctx, 10)
+		utils.MaybeProvide(fx.Provide(func(ctx context.Context) *taskmanager.TaskManager {
+			return taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
+		}), bCfg.tmCount > 0),
+		fx.Provide(func() string {
+			return bCfg.svcName
 		}),
-		ipfs.Module,
-		locker.Module,
+		utils.MaybeProvide(locker.Module, bCfg.cfg.IsSet("UseLocker")),
 		auth.Module(r.Config()),
-		grpcServer.Module(r.Config()),
+		utils.MaybeProvide(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeProvide(grpcServer.Module(r.Config()),
+			bCfg.cfg.IsSet("UseTCP") || bCfg.cfg.IsSet("UseP2P")),
 		mhttp.Module(r.Config()),
-		cdn.Module,
-		grpcclient.Module,
-		events.Module,
+		utils.MaybeProvide(grpcclient.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeProvide(events.Module, bCfg.cfg.IsSet("UseP2P")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
@@ -164,41 +222,41 @@ type impl struct {
 	Cancel  context.CancelFunc
 
 	R    repo.Repo
-	H    host.Host
-	Dht  routing.Routing
-	P    *ipfslite.Peer
-	Ps   *pubsub.PubSub
-	Disc discovery.Discovery
-	St   store.Store
-	Jm   auth.JWTManager `optional:"true"`
-	Am   auth.ACL
-	Lk   dLocker.DLocker
-	Rsrv *grpc.Server
-	Tm   *taskmanager.TaskManager
-	Ev   events.Events
-	Cs   *grpcclient.ClientSvc
-	Mx   *http.ServeMux
-}
-
-// Node API
-func (s *impl) Node() Node {
-	return s
+	Am   auth.ACL                 `optional:"true"`
+	Tm   *taskmanager.TaskManager `optional:"true"`
+	Lk   dLocker.DLocker          `optional:"true"`
+	Rsrv *grpc.Server             `optional:"true"`
+	Mx   *http.ServeMux           `optional:"true"`
+	H    host.Host                `optional:"true"`
+	Dht  routing.Routing          `optional:"true"`
+	P    *ipfslite.Peer           `optional:"true"`
+	Ps   *pubsub.PubSub           `optional:"true"`
+	Disc discovery.Discovery      `optional:"true"`
+	St   store.Store              `optional:"true"`
+	Jm   auth.JWTManager          `optional:"true"`
+	Ev   events.Events            `optional:"true"`
+	Cs   grpcclient.ClientSvc     `optional:"true"`
 }
 
 func (s *impl) Repo() repo.Repo {
 	return s.R
 }
 
-// Storage API
-func (s *impl) Storage() Storage {
-	return s
+func (s *impl) TM() (*taskmanager.TaskManager, error) {
+	if s.Tm == nil {
+		return nil, errors.New("Taskmanager not configured")
+	}
+	return s.Tm, nil
 }
 
-func (s *impl) Local() store.Store {
-	return s.R.Store()
+func (s *impl) Node() (Node, error) {
+	if s.H == nil {
+		return nil, errors.New("Node not configured")
+	}
+	return s, nil
 }
 
-func (s *impl) Shared() store.Store {
+func (s *impl) Storage() store.Store {
 	return s.St
 }
 
@@ -234,38 +292,59 @@ func (s *impl) Auth() Auth {
 	return s
 }
 
-func (s *impl) JWT() auth.JWTManager {
-	return s.Jm
+func (s *impl) JWT() (auth.JWTManager, error) {
+	if s.Jm == nil {
+		return nil, errors.New("JWT not configured")
+	}
+	return s.Jm, nil
 }
 
-func (s *impl) ACL() auth.ACL {
-	return s.Am
+func (s *impl) ACL() (auth.ACL, error) {
+	if s.Am == nil {
+		return nil, errors.New("ACL manager not configured")
+	}
+	return s.Am, nil
 }
 
-func (s *impl) GRPC() GRPC {
-	return s
+func (s *impl) GRPC() (GRPC, error) {
+	if s.Rsrv == nil {
+		return nil, errors.New("GRPC service not configured")
+	}
+	return s, nil
 }
 
 func (s *impl) Server() *grpc.Server {
 	return s.Rsrv
 }
 
-func (s *impl) Client(ctx context.Context, name string) (grpcclient.Client, error) {
-	return s.Cs.NewClient(ctx, name)
+func (s *impl) Client(ctx context.Context, name string) (*grpc.ClientConn, error) {
+	if s.Cs == nil {
+		return nil, errors.New("Service discovery not configured")
+	}
+	return s.Cs.Get(ctx, name)
 }
 
-func (s *impl) HTTP() HTTP {
-	return s
+func (s *impl) HTTP() (HTTP, error) {
+	if s.Mx == nil {
+		return nil, errors.New("HTTP service not configured")
+	}
+	return s, nil
 }
 
 func (s *impl) Mux() *http.ServeMux {
 	return s.Mx
 }
 
-func (s *impl) Locker() dLocker.DLocker {
-	return s.Lk
+func (s *impl) Locker() (dLocker.DLocker, error) {
+	if s.Lk == nil {
+		return nil, errors.New("Locker not configured")
+	}
+	return s.Lk, nil
 }
 
-func (s *impl) Events() events.Events {
-	return s.Ev
+func (s *impl) Events() (events.Events, error) {
+	if s.Ev == nil {
+		return nil, errors.New("Events not configured")
+	}
+	return s.Ev, nil
 }

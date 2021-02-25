@@ -9,6 +9,6 @@ import (
 var Module = func(c config.Config) fx.Option {
 	return fx.Options(
 		utils.MaybeProvide(NewJWTManager, c.IsSet("UseJWT")),
-		fx.Provide(NewAclManager),
+		utils.MaybeProvide(NewAclManager, c.IsSet("UseACL")),
 	)
 }

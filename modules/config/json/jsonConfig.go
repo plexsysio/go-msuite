@@ -7,12 +7,6 @@ import (
 	"github.com/aloknerurkar/go-msuite/utils"
 )
 
-const (
-	ApiPort     = "4341"
-	SwarmPort   = "4342"
-	GatewayPort = "4343"
-)
-
 type JsonConfig map[string]interface{}
 
 func (j *JsonConfig) Get(key string, val interface{}) bool {
@@ -41,12 +35,6 @@ func (j *JsonConfig) IsSet(key string) bool {
 
 func DefaultConfig() *JsonConfig {
 	var conf = make(JsonConfig)
-	conf["SwarmPort"] = SwarmPort
-	conf["UseTCP"] = true
-	conf["TCPPort"] = 10000
-	conf["UseHTTP"] = true
-	conf["HTTPPort"] = 10001
-	conf["Locker"] = "inmem"
 	return &conf
 }
 

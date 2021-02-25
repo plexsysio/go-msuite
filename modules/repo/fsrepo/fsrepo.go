@@ -157,6 +157,7 @@ func Init(path string, c config.Config) error {
 		return wrapError("already initialized", nil)
 	}
 	if err := initRepo(path); err != nil {
+		fmt.Println(path, err.Error())
 		return wrapError("failed creating directories", err)
 	}
 	// Create new IDs if not provided
