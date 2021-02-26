@@ -45,12 +45,13 @@ func Libp2p(
 	conf config.Config,
 	priv crypto.PrivKey,
 ) (host.Host, routing.Routing, error) {
-	var swPort string
+	var swPort int
+	fmt.Println(conf.String())
 	ok := conf.Get("SwarmPort", &swPort)
 	if !ok {
 		return nil, nil, errors.New("Swarm Port missing")
 	}
-	tcpAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%s", swPort))
+	tcpAddr, err := multiaddr.NewMultiaddr(fmt.Sprintf("/ip4/0.0.0.0/tcp/%d", swPort))
 	if err != nil {
 		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
 	}

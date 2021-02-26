@@ -2,7 +2,6 @@ package grpcServer
 
 import (
 	"context"
-	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/middleware"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
@@ -62,7 +61,6 @@ func OptsAggregator(params ServerOptsParams) []grpc.ServerOption {
 }
 
 func Transport(c config.Config) fx.Option {
-	fmt.Println("Transport")
 	return fx.Options(
 		utils.MaybeProvide(tcp.NewTCPListener, c.IsSet("UseTCP")),
 		utils.MaybeProvide(p2pgrpc.NewP2PListener, c.IsSet("UseP2P")),
@@ -70,10 +68,9 @@ func Transport(c config.Config) fx.Option {
 }
 
 func Middleware(c config.Config) fx.Option {
-	fmt.Println("Middleware")
 	return fx.Options(
-		utils.MaybeProvide(mware.JwtAuth, c.IsSet("UseJWT")),
-		utils.MaybeProvide(mware.TracerModule, c.IsSet("UseTracing")),
+		utils.MaybeOption(mware.JwtAuth, c.IsSet("UseJWT")),
+		utils.MaybeOption(mware.TracerModule, c.IsSet("UseTracing")),
 	)
 }
 

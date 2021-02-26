@@ -84,6 +84,7 @@ func WithHTTP(port int) Option {
 func WithLocker(lkr string, cfg map[string]string) Option {
 	return func(c *BuildCfg) {
 		c.cfg.Set("UseLocker", true)
+		c.cfg.Set("Locker", lkr)
 		for k, v := range cfg {
 			c.cfg.Set(k, v)
 		}
@@ -184,20 +185,20 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
 			return r, r.Config(), r.Datastore()
 		}),
-		utils.MaybeProvide(fx.Provide(func(ctx context.Context) *taskmanager.TaskManager {
+		utils.MaybeProvide(func(ctx context.Context) *taskmanager.TaskManager {
 			return taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
-		}), bCfg.tmCount > 0),
+		}, bCfg.tmCount > 0),
 		fx.Provide(func() string {
 			return bCfg.svcName
 		}),
-		utils.MaybeProvide(locker.Module, bCfg.cfg.IsSet("UseLocker")),
+		utils.MaybeOption(locker.Module, bCfg.cfg.IsSet("UseLocker")),
 		auth.Module(r.Config()),
-		utils.MaybeProvide(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),
-		utils.MaybeProvide(grpcServer.Module(r.Config()),
+		utils.MaybeOption(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeOption(grpcServer.Module(r.Config()),
 			bCfg.cfg.IsSet("UseTCP") || bCfg.cfg.IsSet("UseP2P")),
 		mhttp.Module(r.Config()),
-		utils.MaybeProvide(grpcclient.Module, bCfg.cfg.IsSet("UseP2P")),
-		utils.MaybeProvide(events.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeOption(grpcclient.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeOption(events.Module, bCfg.cfg.IsSet("UseP2P")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {

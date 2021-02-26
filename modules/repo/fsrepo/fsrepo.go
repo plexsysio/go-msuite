@@ -29,6 +29,7 @@ func (r *repoOpener) Open(path string) (repo.Repo, error) {
 	defer r.mtx.Unlock()
 
 	if r.active != nil {
+		fmt.Println("Returning active repo")
 		r.refCnt++
 		return r.active, nil
 	}
@@ -45,11 +46,14 @@ func (r *repoOpener) Close() error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
+	fmt.Println("Close called refCnt", r.refCnt)
 	r.refCnt--
 	if r.refCnt > 0 {
 		return nil
 	}
-	return r.active.close()
+	ar := r.active
+	r.active = nil
+	return ar.close()
 }
 
 var (
@@ -135,7 +139,6 @@ func initIdentity(c config.Config) error {
 	}
 	ident["ID"] = id.Pretty()
 	c.Set("Identity", ident)
-	fmt.Println("ID SET")
 	return nil
 }
 
@@ -157,18 +160,17 @@ func Init(path string, c config.Config) error {
 		return wrapError("already initialized", nil)
 	}
 	if err := initRepo(path); err != nil {
-		fmt.Println(path, err.Error())
 		return wrapError("failed creating directories", err)
 	}
 	// Create new IDs if not provided
+	fmt.Println("Before ID", c.String())
 	id := map[string]interface{}{}
 	if !c.Get("Identity", &id) {
 		if err := initIdentity(c); err != nil {
 			return wrapError("failed creating identity", err)
 		}
-	} else {
-		fmt.Println("IDENTITY PRESENT")
 	}
+	fmt.Println("After ID", c.String())
 	// Write the initial config provided
 	err := utils.WriteToFile(c, configPath(path))
 	if err != nil {
@@ -236,6 +238,7 @@ func open(path string) (repo.Repo, error) {
 	if err := r.openStore(); err != nil {
 		return nil, wrapError("failed opening KV store", err)
 	}
+	fmt.Println("On opening", r.cfg.String())
 	return r, nil
 }
 

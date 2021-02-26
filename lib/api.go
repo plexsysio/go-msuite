@@ -46,11 +46,6 @@ type P2P interface {
 	Discovery() discovery.Discovery
 }
 
-type Storage interface {
-	Local() store.Store
-	Shared() store.Store
-}
-
 type Auth interface {
 	JWT() (auth.JWTManager, error)
 	ACL() (auth.ACL, error)

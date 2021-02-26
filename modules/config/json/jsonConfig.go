@@ -2,6 +2,7 @@ package jsonConf
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
 	"github.com/aloknerurkar/go-msuite/utils"
@@ -60,6 +61,7 @@ func (j *JsonConfig) Read(p []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
+	fmt.Println("Read", string(buf))
 	copy(p, buf)
 	if len(buf) > len(p) {
 		return len(p), nil
@@ -68,6 +70,7 @@ func (j *JsonConfig) Read(p []byte) (int, error) {
 }
 
 func (j *JsonConfig) Write(p []byte) (int, error) {
+	fmt.Println("Write", string(p))
 	err := json.Unmarshal(p, j)
 	if err != nil {
 		return 0, err

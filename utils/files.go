@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -37,6 +38,7 @@ func ReadFromFile(w io.Writer, f string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("READING", string(buf))
 	n, err := w.Write(buf)
 	if err != nil {
 		return err
