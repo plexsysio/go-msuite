@@ -2,11 +2,16 @@ package grpcServer
 
 import (
 	"context"
+	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/middleware"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/p2pgrpc"
+	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/tcp"
+	"github.com/aloknerurkar/go-msuite/utils"
 	"github.com/grpc-ecosystem/go-grpc-middleware"
-	logger "github.com/ipfs/go-log"
+	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
-	"net"
 )
 
 var log = logger.Logger("grpc_service")
@@ -15,20 +20,24 @@ type GrpcServerParams struct {
 	fx.In
 
 	Opts   []grpc.ServerOption
-	Listnr net.Listener
+	Listnr *grpcmux.Mux
 }
 
 func New(lc fx.Lifecycle, params GrpcServerParams) (*grpc.Server, error) {
-
 	rpcSrv := grpc.NewServer(params.Opts...)
-
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			log.Info("Starting GRPC server")
-			return rpcSrv.Serve(params.Listnr)
+			go func() {
+				log.Info("Starting GRPC server")
+				err := rpcSrv.Serve(params.Listnr)
+				if err != nil {
+					log.Error("Failed to serve gRPC", err.Error())
+				}
+			}()
+			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			params.Listnr.Close()
+			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil
 		},
@@ -44,14 +53,33 @@ type ServerOptsParams struct {
 }
 
 func OptsAggregator(params ServerOptsParams) []grpc.ServerOption {
-
+	log.Info("Server opts:", params)
 	outOpts := make([]grpc.ServerOption, 0)
 	outOpts = append(outOpts, grpc_middleware.WithUnaryServerChain(params.UnaryOpts...))
 	outOpts = append(outOpts, grpc_middleware.WithStreamServerChain(params.StreamOpts...))
 	return outOpts
 }
 
-var Module = fx.Options(
-	fx.Provide(OptsAggregator),
-	fx.Invoke(New),
-)
+func Transport(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeProvide(tcp.NewTCPListener, c.IsSet("UseTCP")),
+		utils.MaybeProvide(p2pgrpc.NewP2PListener, c.IsSet("UseP2P")),
+	)
+}
+
+func Middleware(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeOption(mware.JwtAuth, c.IsSet("UseJWT")),
+		utils.MaybeOption(mware.TracerModule, c.IsSet("UseTracing")),
+	)
+}
+
+var Module = func(c config.Config) fx.Option {
+	return fx.Options(
+		Transport(c),
+		Middleware(c),
+		grpcmux.Module,
+		fx.Provide(OptsAggregator),
+		fx.Provide(New),
+	)
+}

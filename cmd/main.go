@@ -3,33 +3,26 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/aloknerurkar/go-msuite/modules/config"
-	"github.com/aloknerurkar/go-msuite/modules/grpc"
-	"github.com/aloknerurkar/go-msuite/modules/libp2p"
-	logger "github.com/ipfs/go-log"
-	"go.uber.org/fx"
+	"github.com/aloknerurkar/go-msuite/lib"
+	logger "github.com/ipfs/go-log/v2"
 )
 
 func main() {
 	logger.SetLogLevel("*", "Debug")
-	app := fx.New(
-		config.Module,
-		libp2p.P2P,
-		libp2p.P2PGrpc,
-		grpcServer.JwtAuth,
-		grpcServer.TracerModule,
-		grpcServer.Module,
-	)
 
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
+	app, err := msuite.New()
+	if err != nil {
+		fmt.Println("Failed creating msuite service", err.Error())
+	}
 	fmt.Println("Starting")
-	err := app.Start(ctx)
+	err = app.Start(ctx)
 	if err != nil {
 		fmt.Println("Failed starting app")
+		cancel()
 		return
 	}
-
 	<-app.Done()
 	_ = app.Stop(ctx)
 }

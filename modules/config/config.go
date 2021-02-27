@@ -1,18 +1,22 @@
 package config
 
 import (
-	"github.com/aloknerurkar/go-msuite/modules/config/json"
-	"go.uber.org/fx"
+	"io"
 )
 
 type Config interface {
-	Get(string) interface{}
-}
+	// For reading and writing from files
+	io.Reader
+	io.Writer
 
-func NewConf() Config {
-	return jsonConf.DefaultConfig()
-}
+	// Print helpers
+	String() string
+	Pretty() string
 
-var Module = fx.Options(
-	fx.Provide(NewConf),
-)
+	// Getters/Setters
+	Get(key string, val interface{}) bool
+	Set(key string, val interface{})
+
+	// IsSet is helper used to check boolean value is set
+	IsSet(key string) bool
+}

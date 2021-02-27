@@ -2,47 +2,49 @@ package jsonConf
 
 import (
 	"encoding/json"
-	logger "github.com/ipfs/go-log"
-	"strconv"
+	"io"
+
+	"github.com/aloknerurkar/go-msuite/utils"
 )
 
-var log = logger.Logger("jsonConf")
+type JsonConfig map[string]interface{}
 
-type JsonConfig struct {
-	GrpcPort    int32  `json:"grpc_port"`
-	P2PPort     int32  `json:"p2p_port"`
-	UseJwt      bool   `json:"use_jwt"`
-	UseTracing  bool   `json:"use_tracing"`
-	ServiceName string `json:"service_name"`
-	TracingHost string `json:"tracing_host"`
+func (j *JsonConfig) Get(key string, val interface{}) bool {
+	_, ok := (*j)[key]
+	if !ok {
+		return false
+	}
+	jsonString, err := json.Marshal((*j)[key])
+	if err != nil {
+		return false
+	}
+	if err := json.Unmarshal(jsonString, val); err != nil {
+		return false
+	}
+	return true
+}
+
+func (j *JsonConfig) Set(key string, val interface{}) {
+	(*j)[key] = val
+}
+
+func (j *JsonConfig) IsSet(key string) bool {
+	val, ok := (*j)[key]
+	return ok && val.(bool)
 }
 
 func DefaultConfig() *JsonConfig {
-	log.Info("Returning default config")
-	return &JsonConfig{
-		P2PPort:     10000,
-		UseJwt:      false,
-		UseTracing:  true,
-		TracingHost: "localhost:16656",
-		ServiceName: "fxTest",
+	var conf = make(JsonConfig)
+	return &conf
+}
+
+func FromFile(f string) (*JsonConfig, error) {
+	j := &JsonConfig{}
+	err := utils.ReadFromFile(j, f)
+	if err != nil {
+		return nil, err
 	}
-}
-
-// Functions for Store and Item interfaces
-func (j *JsonConfig) GetNamespace() string {
-	return "ssConfig"
-}
-
-func (j *JsonConfig) GetId() string {
-	return "json"
-}
-
-func (j *JsonConfig) Marshal() ([]byte, error) {
-	return json.Marshal(j)
-}
-
-func (j *JsonConfig) Unmarshal(buf []byte) error {
-	return json.Unmarshal(buf, j)
+	return j, nil
 }
 
 func (j *JsonConfig) String() string {
@@ -53,84 +55,30 @@ func (j *JsonConfig) String() string {
 	return string(buf)
 }
 
-func (j *JsonConfig) Json() []byte {
+func (j *JsonConfig) Read(p []byte) (int, error) {
 	buf, err := json.MarshalIndent(j, "", "\t")
 	if err != nil {
-		return []byte("INVALID_CONFIG")
+		return 0, err
 	}
-	return buf
+	copy(p, buf)
+	if len(buf) > len(p) {
+		return len(p), nil
+	}
+	return len(buf), io.EOF
+}
+
+func (j *JsonConfig) Write(p []byte) (int, error) {
+	err := json.Unmarshal(p, j)
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 func (j *JsonConfig) Pretty() string {
-	return string(j.Json())
-}
-
-func (j *JsonConfig) jsonMap() (map[string]interface{}, error) {
-	buf, err := j.Marshal()
+	buf, err := json.MarshalIndent(j, "", "\t")
 	if err != nil {
-		return nil, err
+		return "INVALID_CONFIG"
 	}
-	newMp := make(map[string]interface{})
-	err = json.Unmarshal(buf, &newMp)
-	if err != nil {
-		return nil, err
-	}
-	return newMp, nil
-}
-
-func (j *JsonConfig) Get(key string) interface{} {
-	jMap, err := j.jsonMap()
-	if err != nil {
-		return nil
-	}
-	val, ok := jMap[key]
-	if !ok {
-		return nil
-	}
-	if key == "grpc_port" || key == "p2p_port" {
-		return int32(val.(float64))
-	}
-	if key == "use_jwt" || key == "use_tracing" {
-		return val.(bool)
-	}
-	return val.(string)
-}
-
-func (j *JsonConfig) Set(key string, val interface{}) {
-	switch key {
-	case "grpc_port":
-		if intVal, ok := val.(int32); ok {
-			j.GrpcPort = intVal
-		} else if strVal, ok := val.(string); ok {
-			iVal, err := strconv.ParseInt(strVal, 10, 0)
-			if err == nil {
-				j.GrpcPort = int32(iVal)
-			}
-		}
-	case "p2p_port":
-		if intVal, ok := val.(int32); ok {
-			j.P2PPort = intVal
-		} else if strVal, ok := val.(string); ok {
-			iVal, err := strconv.ParseInt(strVal, 10, 0)
-			if err == nil {
-				j.P2PPort = int32(iVal)
-			}
-		}
-	case "use_jwt":
-		if boolVal, ok := val.(bool); ok {
-			j.UseJwt = boolVal
-		}
-	case "use_tracing":
-		if boolVal, ok := val.(bool); ok {
-			j.UseTracing = boolVal
-		}
-	case "service_name":
-		if strVal, ok := val.(string); ok {
-			j.ServiceName = strVal
-		}
-	case "tracing_host":
-		if strVal, ok := val.(string); ok {
-			j.TracingHost = strVal
-		}
-	}
+	return string(buf)
 }
