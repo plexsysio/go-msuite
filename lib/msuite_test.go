@@ -5,6 +5,7 @@ import (
 	logger "github.com/ipfs/go-log/v2"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestMain(m *testing.M) {
@@ -168,6 +169,7 @@ func TestNode(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
+	<-time.After(time.Second * 3)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -223,6 +225,7 @@ func TestHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
+	<-time.After(time.Second * 3)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -284,6 +287,7 @@ func TestLockerAuth(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
+	<-time.After(time.Second * 3)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())

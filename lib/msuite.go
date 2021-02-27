@@ -208,6 +208,14 @@ func New(opts ...Option) (Service, error) {
 				},
 			})
 		}),
+		utils.MaybeInvoke(func(lc fx.Lifecycle, tm *taskmanager.TaskManager) {
+			lc.Append(fx.Hook{
+				OnStop: func(c context.Context) error {
+					tm.Stop()
+					return nil
+				},
+			})
+		}, bCfg.tmCount > 0),
 		fx.Populate(svc),
 	)
 

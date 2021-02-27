@@ -54,7 +54,11 @@ func NewMuxedListener(
 	lc.Append(fx.Hook{
 		OnStop: func(c context.Context) error {
 			log.Info("Stopping Muxed listeners")
-			return m.Close()
+			err := m.Close()
+			if err != nil {
+				log.Warn("Error on closing listeners", err.Error())
+			}
+			return nil
 		},
 	})
 	return m, nil
