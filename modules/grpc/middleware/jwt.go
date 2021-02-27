@@ -76,9 +76,11 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 
 func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
 	roles := interceptor.am.Allowed(method)
-	if len(roles) == 1 && roles[0] == auth.None {
-		// everyone can access
-		return nil
+	for _, rl := range roles {
+		if rl == auth.None {
+			// everyone can access
+			return nil
+		}
 	}
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {

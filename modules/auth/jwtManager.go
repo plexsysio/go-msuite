@@ -11,13 +11,15 @@ import (
 // UserClaims is a custom JWT claims that contains some user's information
 type UserClaims struct {
 	jwt.StandardClaims
-	ID   string `json:"id"`
-	Role string `json:"role"`
+	ID   string                 `json:"id"`
+	Role string                 `json:"role"`
+	Mtdt map[string]interface{} `json:"mtdt"`
 }
 
 type User interface {
 	ID() string
 	Role() string
+	Mtdt() map[string]interface{}
 }
 
 type JWTManager interface {
@@ -48,6 +50,7 @@ func (manager *jwtManager) Generate(user User, timeout time.Duration) (string, e
 		},
 		ID:   user.ID(),
 		Role: user.Role(),
+		Mtdt: user.Mtdt(),
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(manager.secretKey))

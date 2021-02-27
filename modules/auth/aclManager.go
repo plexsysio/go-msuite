@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/StreamSpace/ss-store"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
 )
@@ -76,14 +77,28 @@ type aclManager struct {
 	st store.Store
 }
 
-func NewAclManager(r repo.Repo) ACL {
-	return &aclManager{r.Store()}
+func NewAclManager(r repo.Repo) (ACL, error) {
+	am := &aclManager{r.Store()}
+	acls := map[string]string{}
+	if ok := r.Config().Get("ACL", &acls); ok {
+		for k, v := range acls {
+			err := am.Configure(k, Role(v))
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	return am, nil
 }
 
 func (a *aclManager) Configure(rsc string, role Role) error {
+	r, ok := aclMap[role]
+	if !ok {
+		return errors.New("Invalid Role")
+	}
 	nacl := &Acl{
 		Key:   rsc,
-		Roles: aclMap[role],
+		Roles: r,
 	}
 	return a.st.Update(nacl)
 }
@@ -101,10 +116,14 @@ func (a *aclManager) Authorized(rsc string, role Role) bool {
 	}
 	err := a.st.Read(nacl)
 	if err != nil {
-		// If there is no ACL configured, by default access is 'noAcl'
+		// If there is no ACL configured, by default access is universal
 		return true
 	}
-	return aclMap[role] >= nacl.Roles
+	r, ok := aclMap[role]
+	if !ok {
+		return false
+	}
+	return r >= nacl.Roles
 }
 
 func (a *aclManager) Allowed(rsc string) []Role {
@@ -113,11 +132,11 @@ func (a *aclManager) Allowed(rsc string) []Role {
 	}
 	err := a.st.Read(nacl)
 	if err != nil {
-		// If there is no ACL configured, by default access is 'noAcl'
-		return []Role{None}
+		// If there is no ACL configured, by default access is universal
+		return []Role{None, PublicRead, PublicWrite, AuthRead, AuthWrite, Admin}
 	}
 	roles := []Role{}
-	for i := 1; i < nacl.Roles; i++ {
+	for i := admin; i >= nacl.Roles; i-- {
 		roles = append(roles, raclMap[i])
 	}
 	return roles
