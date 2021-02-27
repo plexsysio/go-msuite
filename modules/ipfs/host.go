@@ -46,7 +46,6 @@ func Libp2p(
 	priv crypto.PrivKey,
 ) (host.Host, routing.Routing, error) {
 	var swPort int
-	fmt.Println(conf.String())
 	ok := conf.Get("SwarmPort", &swPort)
 	if !ok {
 		return nil, nil, errors.New("Swarm Port missing")

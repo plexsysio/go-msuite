@@ -69,7 +69,7 @@ func TestOpen(t *testing.T) {
 	if opener.refCnt != 0 {
 		t.Fatal("RefCnt is incorrect", opener)
 	}
-	if opener.active.kvStore != nil || opener.active.rootDS != nil {
+	if opener.active != nil {
 		t.Fatal("Close did not clear internal stores")
 	}
 }
