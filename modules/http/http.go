@@ -22,7 +22,7 @@ var Module = func(c config.Config) fx.Option {
 		utils.MaybeProvide(NewGRPCGateway, c.IsSet("UseHTTP")),
 		utils.MaybeProvide(mware.JWT, c.IsSet("UseJWT")),
 		utils.MaybeProvide(mware.Tracing, c.IsSet("UseTracing")),
-		utils.MaybeProvide(mware.Prometheus, c.IsSet("UsePrometheus")),
+		utils.MaybeOption(mware.Prometheus, c.IsSet("UsePrometheus")),
 		utils.MaybeInvoke(NewHTTPServer, c.IsSet("UseHTTP")),
 	)
 }
