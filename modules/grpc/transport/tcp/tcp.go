@@ -26,7 +26,7 @@ func NewTCPListener(conf config.Config) (grpcmux.MuxListenerOut, error) {
 	}
 	return grpcmux.MuxListenerOut{
 		Listener: grpcmux.MuxListener{
-			Tag:      "TCP",
+			Tag:      fmt.Sprintf("TCP Port %d", portVal),
 			Listener: listnr,
 		},
 	}, nil

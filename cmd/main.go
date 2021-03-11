@@ -8,18 +8,21 @@ import (
 )
 
 func main() {
-	logger.SetLogLevel("*", "Debug")
+	logger.SetLogLevel("http", "Debug")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	app, err := msuite.New()
-	if err != nil {
-		fmt.Println("Failed creating msuite service", err.Error())
-	}
+	app, err := msuite.New(
+		msuite.WithHTTP(10000),
+		msuite.WithJWT("dummysecret"),
+		msuite.WithP2PPort(10001),
+		msuite.WithGRPCTCPListener(10002),
+		msuite.WithServiceACL(nil),
+	)
 	fmt.Println("Starting")
 	err = app.Start(ctx)
 	if err != nil {
-		fmt.Println("Failed starting app")
+		fmt.Println("Failed starting app", err.Error())
 		cancel()
 		return
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/config/json"
+	"github.com/aloknerurkar/go-msuite/modules/diag/status"
 	"github.com/aloknerurkar/go-msuite/modules/events"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/client"
@@ -191,6 +192,7 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func() string {
 			return bCfg.svcName
 		}),
+		status.Module,
 		utils.MaybeOption(locker.Module, bCfg.cfg.IsSet("UseLocker")),
 		auth.Module(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),

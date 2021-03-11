@@ -3,6 +3,7 @@ package grpcmux
 import (
 	"context"
 	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/aloknerurkar/go-msuite/modules/diag/status"
 	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 	"io"
@@ -43,6 +44,7 @@ func NewMuxedListener(
 	ctx context.Context,
 	listeners MuxIn,
 	tm *taskmanager.TaskManager,
+	st status.Manager,
 ) (*Mux, error) {
 	m := &Mux{
 		listeners: listeners.Listeners,
@@ -51,8 +53,19 @@ func NewMuxedListener(
 	}
 	m.muxCtx, m.muxCancel = context.WithCancel(ctx)
 	m.start()
+	stMp := make(map[string]interface{})
+	for _, v := range listeners.Listeners {
+		stMp[v.Tag] = "Running"
+	}
+	st.Report("RPC Listeners", status.Map(stMp))
 	lc.Append(fx.Hook{
 		OnStop: func(c context.Context) error {
+			defer func() {
+				for k, _ := range stMp {
+					stMp[k] = "Stopped"
+				}
+				st.Report("RPC Listeners", status.Map(stMp))
+			}()
 			log.Info("Stopping Muxed listeners")
 			err := m.Close()
 			if err != nil {
