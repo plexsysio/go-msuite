@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"github.com/StreamSpace/ss-store"
+	"github.com/SWRMLabs/ss-store"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	ds "github.com/ipfs/go-datastore"
 	"io"

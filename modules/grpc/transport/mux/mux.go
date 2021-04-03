@@ -2,7 +2,7 @@ package grpcmux
 
 import (
 	"context"
-	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/SWRMLabs/ss-taskmanager"
 	"github.com/aloknerurkar/go-msuite/modules/diag/status"
 	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"

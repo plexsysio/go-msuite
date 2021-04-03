@@ -2,7 +2,7 @@ package status
 
 import (
 	"encoding/json"
-	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/SWRMLabs/ss-taskmanager"
 	"go.uber.org/fx"
 	"net/http"
 	"sync"

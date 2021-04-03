@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/SWRMLabs/ss-taskmanager"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"go.uber.org/fx"
