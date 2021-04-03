@@ -29,7 +29,7 @@ type Factory func() Event
 type Handle func(Event)
 
 type Events interface {
-	RegisterHandler(string, Factory, Handle)
+	RegisterHandler(Factory, Handle)
 	Broadcast(context.Context, Event) error
 }
 
@@ -79,15 +79,15 @@ type evHandler struct {
 	handle  Handle
 }
 
-func (p *eventsImpl) RegisterHandler(topic string, factory Factory, handle Handle) {
-	hdlrs, ok := p.handlrMap.Load(topic)
+func (p *eventsImpl) RegisterHandler(factory Factory, handle Handle) {
+	hdlrs, ok := p.handlrMap.Load(factory().Topic())
 	if !ok {
 		hdlrs = []*evHandler{}
 	}
 	hdlrs = append(hdlrs.([]*evHandler), &evHandler{factory: factory, handle: handle})
-	p.handlrMap.Store(topic, hdlrs)
+	p.handlrMap.Store(factory().Topic(), hdlrs)
 	log.Infof("Registered new handler Topic: %s No. of Handlers: %s",
-		topic, len(hdlrs.([]*evHandler)))
+		factory().Topic(), len(hdlrs.([]*evHandler)))
 }
 
 func (p *eventsImpl) Broadcast(ctx context.Context, e Event) error {
