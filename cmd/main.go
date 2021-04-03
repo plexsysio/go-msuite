@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	logger.SetLogLevel("http", "Debug")
+	logger.SetLogLevel("*", "Debug")
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -18,6 +18,7 @@ func main() {
 		msuite.WithP2PPort(10001),
 		msuite.WithGRPCTCPListener(10002),
 		msuite.WithServiceACL(nil),
+		msuite.WithPrometheus(),
 	)
 	fmt.Println("Starting")
 	err = app.Start(ctx)

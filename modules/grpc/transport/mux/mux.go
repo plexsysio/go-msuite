@@ -52,7 +52,12 @@ func NewMuxedListener(
 		connChan:  make(chan net.Conn, 50),
 	}
 	m.muxCtx, m.muxCancel = context.WithCancel(ctx)
-	m.start()
+	m.start(func(key string, err error) {
+		dMap := map[string]interface{}{
+			key: "Failed Err:" + err.Error(),
+		}
+		st.Report("RPC Listeners", status.Map(dMap))
+	})
 	stMp := make(map[string]interface{})
 	for _, v := range listeners.Listeners {
 		stMp[v.Tag] = "Running"
@@ -77,12 +82,15 @@ func NewMuxedListener(
 	return m, nil
 }
 
-func (m *Mux) start() {
+func (m *Mux) start(reportError func(string, error)) {
 	for _, v := range m.listeners {
 		l := &muxListener{
 			tag:      v.Tag,
 			listener: v.Listener,
 			connChan: m.connChan,
+			reportErr: func(err error) {
+				reportError(v.Tag, err)
+			},
 		}
 		m.tm.GoWork(l)
 	}
@@ -124,9 +132,10 @@ func (m *Mux) Addr() net.Addr {
 }
 
 type muxListener struct {
-	tag      string
-	listener net.Listener
-	connChan chan<- net.Conn
+	tag       string
+	listener  net.Listener
+	connChan  chan<- net.Conn
+	reportErr func(error)
 }
 
 func (m *muxListener) Name() string {
@@ -138,6 +147,7 @@ func (m *muxListener) Execute(ctx context.Context) error {
 		conn, err := m.listener.Accept()
 		if err != nil {
 			log.Error("Failed accepting new connection from listener", m.tag, err.Error())
+			m.reportErr(err)
 			return err
 		}
 		select {

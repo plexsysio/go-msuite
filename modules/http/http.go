@@ -69,6 +69,8 @@ func NewHTTPServer(
 				err := httpServer.ListenAndServe()
 				if err != nil {
 					log.Error("http server stopped ", err)
+					st.Report("HTTP Server",
+						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
 				}
 			}()
 			st.Report("HTTP Server", status.String(fmt.Sprintf("Running on port %d", httpPort)))
@@ -76,7 +78,7 @@ func NewHTTPServer(
 		},
 		OnStop: func(ctx context.Context) error {
 			defer st.Report("HTTP Server", status.String("Stopped"))
-			return httpServer.Close()
+			return httpServer.Shutdown(ctx)
 		},
 	})
 	return nil

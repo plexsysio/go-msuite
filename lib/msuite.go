@@ -142,6 +142,12 @@ func WithTaskManager(count int) Option {
 	}
 }
 
+func WithPrometheus() Option {
+	return func(c *BuildCfg) {
+		c.cfg.Set("UsePrometheus", true)
+	}
+}
+
 func defaultOpts(c *BuildCfg) {
 	if len(c.svcName) == 0 {
 		c.svcName = "msuite"

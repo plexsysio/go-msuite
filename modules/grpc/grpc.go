@@ -2,6 +2,7 @@ package grpcServer
 
 import (
 	"context"
+	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/diag/status"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/middleware"
@@ -37,13 +38,15 @@ func New(
 				err := rpcSrv.Serve(params.Listnr)
 				if err != nil {
 					log.Error("Failed to serve gRPC", err.Error())
+					st.Report("GRPC server",
+						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
 				}
 			}()
 			st.Report("GRPC server", status.String("Running"))
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			defer st.Report("GRPC server", status.String("Running"))
+			defer st.Report("GRPC server", status.String("Stopped"))
 			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil
