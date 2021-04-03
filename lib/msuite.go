@@ -192,8 +192,17 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
 			return r, r.Config(), r.Datastore()
 		}),
-		utils.MaybeProvide(func(ctx context.Context) *taskmanager.TaskManager {
-			return taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
+		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
+			tm := taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
+			lc.Append(fx.Hook{
+				OnStop: func(c context.Context) error {
+					log.Debugf("Stopping taskmanager")
+					defer log.Debugf("Stopped taskmanager")
+					tm.Stop()
+					return nil
+				},
+			})
+			return tm
 		}, bCfg.tmCount > 0),
 		fx.Provide(func() string {
 			return bCfg.svcName
@@ -216,14 +225,6 @@ func New(opts ...Option) (Service, error) {
 				},
 			})
 		}),
-		utils.MaybeInvoke(func(lc fx.Lifecycle, tm *taskmanager.TaskManager) {
-			lc.Append(fx.Hook{
-				OnStop: func(c context.Context) error {
-					tm.Stop()
-					return nil
-				},
-			})
-		}, bCfg.tmCount > 0),
 		fx.Populate(svc),
 	)
 
