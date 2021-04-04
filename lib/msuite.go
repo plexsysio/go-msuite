@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
-	"github.com/StreamSpace/ss-store"
-	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/SWRMLabs/ss-store"
+	"github.com/SWRMLabs/ss-taskmanager"
 	"github.com/aloknerurkar/dLocker"
 	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/config/json"
+	"github.com/aloknerurkar/go-msuite/modules/diag/status"
 	"github.com/aloknerurkar/go-msuite/modules/events"
 	"github.com/aloknerurkar/go-msuite/modules/grpc"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/client"
@@ -141,6 +142,15 @@ func WithTaskManager(count int) Option {
 	}
 }
 
+func WithPrometheus(useLatency bool) Option {
+	return func(c *BuildCfg) {
+		c.cfg.Set("UsePrometheus", true)
+		if useLatency {
+			c.cfg.Set("UsePrometheusLatency", true)
+		}
+	}
+}
+
 func defaultOpts(c *BuildCfg) {
 	if len(c.svcName) == 0 {
 		c.svcName = "msuite"
@@ -182,15 +192,31 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func() (context.Context, context.CancelFunc) {
 			return context.WithCancel(context.Background())
 		}),
-		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
+		fx.Provide(func(lc fx.Lifecycle) (repo.Repo, config.Config, ds.Batching) {
+			lc.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {
+					r.Close()
+					return nil
+				},
+			})
 			return r, r.Config(), r.Datastore()
 		}),
-		utils.MaybeProvide(func(ctx context.Context) *taskmanager.TaskManager {
-			return taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
+		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
+			tm := taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
+			lc.Append(fx.Hook{
+				OnStop: func(c context.Context) error {
+					log.Debugf("Stopping taskmanager")
+					defer log.Debugf("Stopped taskmanager")
+					tm.Stop()
+					return nil
+				},
+			})
+			return tm
 		}, bCfg.tmCount > 0),
 		fx.Provide(func() string {
 			return bCfg.svcName
 		}),
+		status.Module,
 		utils.MaybeOption(locker.Module, bCfg.cfg.IsSet("UseLocker")),
 		auth.Module(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),
@@ -203,19 +229,10 @@ func New(opts ...Option) (Service, error) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
 					cancel()
-					r.Close()
 					return nil
 				},
 			})
 		}),
-		utils.MaybeInvoke(func(lc fx.Lifecycle, tm *taskmanager.TaskManager) {
-			lc.Append(fx.Hook{
-				OnStop: func(c context.Context) error {
-					tm.Stop()
-					return nil
-				},
-			})
-		}, bCfg.tmCount > 0),
 		fx.Populate(svc),
 	)
 

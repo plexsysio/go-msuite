@@ -2,7 +2,9 @@ package grpcServer
 
 import (
 	"context"
+	"fmt"
 	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/aloknerurkar/go-msuite/modules/diag/status"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/middleware"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/p2pgrpc"
@@ -23,7 +25,11 @@ type GrpcServerParams struct {
 	Listnr *grpcmux.Mux
 }
 
-func New(lc fx.Lifecycle, params GrpcServerParams) (*grpc.Server, error) {
+func New(
+	lc fx.Lifecycle,
+	params GrpcServerParams,
+	st status.Manager,
+) (*grpc.Server, error) {
 	rpcSrv := grpc.NewServer(params.Opts...)
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -32,11 +38,15 @@ func New(lc fx.Lifecycle, params GrpcServerParams) (*grpc.Server, error) {
 				err := rpcSrv.Serve(params.Listnr)
 				if err != nil {
 					log.Error("Failed to serve gRPC", err.Error())
+					st.Report("GRPC server",
+						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
 				}
 			}()
+			st.Report("GRPC server", status.String("Running"))
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			defer st.Report("GRPC server", status.String("Stopped"))
 			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil
@@ -71,6 +81,7 @@ func Middleware(c config.Config) fx.Option {
 	return fx.Options(
 		utils.MaybeOption(mware.JwtAuth, c.IsSet("UseJWT")),
 		utils.MaybeOption(mware.TracerModule, c.IsSet("UseTracing")),
+		utils.MaybeOption(mware.Prometheus, c.IsSet("UsePrometheus")),
 	)
 }
 

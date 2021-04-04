@@ -3,7 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
-	"github.com/StreamSpace/ss-store"
+	"github.com/SWRMLabs/ss-store"
 	"github.com/aloknerurkar/go-msuite/modules/repo"
 )
 

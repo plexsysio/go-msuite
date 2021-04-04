@@ -2,8 +2,8 @@ package msuite
 
 import (
 	"context"
-	"github.com/StreamSpace/ss-store"
-	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/SWRMLabs/ss-store"
+	"github.com/SWRMLabs/ss-taskmanager"
 	"github.com/aloknerurkar/dLocker"
 	"github.com/aloknerurkar/go-msuite/modules/auth"
 	"github.com/aloknerurkar/go-msuite/modules/events"

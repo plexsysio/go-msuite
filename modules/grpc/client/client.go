@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/StreamSpace/ss-taskmanager"
+	"github.com/SWRMLabs/ss-taskmanager"
 	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/p2pgrpc"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"

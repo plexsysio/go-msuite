@@ -6,6 +6,7 @@ import (
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	logger "github.com/ipfs/go-log/v2"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
+	opentracing "github.com/opentracing/opentracing-go"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
@@ -19,7 +20,8 @@ var TracerModule = fx.Options(
 type TracerOpts struct {
 	fx.Out
 
-	UOut grpc.UnaryServerInterceptor `group:"unary_opts"`
+	Tracer opentracing.Tracer
+	UOut   grpc.UnaryServerInterceptor `group:"unary_opts"`
 }
 
 func JaegerTracerOptions(
@@ -47,5 +49,6 @@ func JaegerTracerOptions(
 	})
 	log.Info("Registering Jaeger tracer options")
 	params.UOut = gtrace.ServerInterceptor(tracer)
+	params.Tracer = tracer
 	return
 }

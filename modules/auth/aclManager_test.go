@@ -1,8 +1,8 @@
 package auth
 
 import (
-	dsstore "github.com/StreamSpace/ss-ds-store"
-	"github.com/StreamSpace/ss-store"
+	dsstore "github.com/SWRMLabs/ss-ds-store"
+	"github.com/SWRMLabs/ss-store"
 	"github.com/aloknerurkar/go-msuite/modules/config"
 	"github.com/aloknerurkar/go-msuite/modules/config/json"
 	ds "github.com/ipfs/go-datastore"
