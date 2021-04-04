@@ -142,9 +142,12 @@ func WithTaskManager(count int) Option {
 	}
 }
 
-func WithPrometheus() Option {
+func WithPrometheus(useLatency bool) Option {
 	return func(c *BuildCfg) {
 		c.cfg.Set("UsePrometheus", true)
+		if useLatency {
+			c.cfg.Set("UsePrometheusLatency", true)
+		}
 	}
 }
 
@@ -189,7 +192,13 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func() (context.Context, context.CancelFunc) {
 			return context.WithCancel(context.Background())
 		}),
-		fx.Provide(func() (repo.Repo, config.Config, ds.Batching) {
+		fx.Provide(func(lc fx.Lifecycle) (repo.Repo, config.Config, ds.Batching) {
+			lc.Append(fx.Hook{
+				OnStop: func(ctx context.Context) error {
+					r.Close()
+					return nil
+				},
+			})
 			return r, r.Config(), r.Datastore()
 		}),
 		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
@@ -220,7 +229,6 @@ func New(opts ...Option) (Service, error) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
 					cancel()
-					r.Close()
 					return nil
 				},
 			})

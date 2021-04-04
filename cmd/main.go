@@ -18,7 +18,7 @@ func main() {
 		msuite.WithP2PPort(10001),
 		msuite.WithGRPCTCPListener(10002),
 		msuite.WithServiceACL(nil),
-		msuite.WithPrometheus(),
+		msuite.WithPrometheus(true),
 	)
 	fmt.Println("Starting")
 	err = app.Start(ctx)
