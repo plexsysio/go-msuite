@@ -1,7 +1,7 @@
 package jsonConf
 
 import (
-	"github.com/aloknerurkar/go-msuite/utils"
+	"github.com/plexsysio/go-msuite/utils"
 	"os"
 	"testing"
 )

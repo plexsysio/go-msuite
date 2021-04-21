@@ -1,7 +1,7 @@
 package mware
 
 import (
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/grpc-ecosystem/go-grpc-prometheus"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"

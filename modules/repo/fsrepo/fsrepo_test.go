@@ -1,7 +1,7 @@
 package fsrepo
 
 import (
-	"github.com/aloknerurkar/go-msuite/modules/config/json"
+	"github.com/plexsysio/go-msuite/modules/config/json"
 	"os"
 	"testing"
 )

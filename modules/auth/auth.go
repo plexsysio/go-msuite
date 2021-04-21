@@ -1,8 +1,8 @@
 package auth
 
 import (
-	"github.com/aloknerurkar/go-msuite/modules/config"
-	"github.com/aloknerurkar/go-msuite/utils"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
 )
 

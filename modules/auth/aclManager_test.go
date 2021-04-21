@@ -3,8 +3,8 @@ package auth
 import (
 	dsstore "github.com/SWRMLabs/ss-ds-store"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/aloknerurkar/go-msuite/modules/config"
-	"github.com/aloknerurkar/go-msuite/modules/config/json"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config/json"
 	ds "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
 	"testing"

@@ -3,11 +3,11 @@ package locker
 import (
 	"context"
 	"errors"
-	"github.com/aloknerurkar/dLocker"
-	inmem "github.com/aloknerurkar/dLocker/handlers/memlock"
-	rd "github.com/aloknerurkar/dLocker/handlers/redis"
-	zk "github.com/aloknerurkar/dLocker/handlers/zookeeper"
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/plexsysio/dLocker"
+	inmem "github.com/plexsysio/dLocker/handlers/memlock"
+	rd "github.com/plexsysio/dLocker/handlers/redis"
+	zk "github.com/plexsysio/dLocker/handlers/zookeeper"
+	"github.com/plexsysio/go-msuite/modules/config"
 	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 )

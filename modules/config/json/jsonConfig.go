@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/aloknerurkar/go-msuite/utils"
+	"github.com/plexsysio/go-msuite/utils"
 )
 
 type JsonConfig map[string]interface{}

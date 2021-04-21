@@ -2,7 +2,7 @@ package mware
 
 import (
 	"context"
-	"github.com/aloknerurkar/go-msuite/modules/auth"
+	"github.com/plexsysio/go-msuite/modules/auth"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -3,8 +3,8 @@ package tcp
 import (
 	"errors"
 	"fmt"
-	"github.com/aloknerurkar/go-msuite/modules/config"
-	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/grpc/transport/mux"
 	logger "github.com/ipfs/go-log/v2"
 	"net"
 )

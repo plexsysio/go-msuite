@@ -2,7 +2,7 @@ package p2pgrpc
 
 import (
 	"context"
-	"github.com/aloknerurkar/go-msuite/modules/grpc/transport/mux"
+	"github.com/plexsysio/go-msuite/modules/grpc/transport/mux"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/host"
 	inet "github.com/libp2p/go-libp2p-core/network"

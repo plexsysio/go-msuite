@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/SWRMLabs/ants-db"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/ipfs/go-datastore"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/aloknerurkar/go-msuite/lib"
+	"github.com/plexsysio/go-msuite/lib"
 	logger "github.com/ipfs/go-log/v2"
 )
 

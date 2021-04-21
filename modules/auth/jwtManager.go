@@ -3,7 +3,7 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/dgrijalva/jwt-go"
 	"time"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/aloknerurkar/go-msuite/modules/repo"
+	"github.com/plexsysio/go-msuite/modules/repo"
 )
 
 type Role string

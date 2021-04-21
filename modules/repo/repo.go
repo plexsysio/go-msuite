@@ -2,7 +2,7 @@ package repo
 
 import (
 	"github.com/SWRMLabs/ss-store"
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config"
 	ds "github.com/ipfs/go-datastore"
 	"io"
 )

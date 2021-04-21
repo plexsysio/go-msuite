@@ -3,7 +3,7 @@ package mware
 import (
 	"context"
 	"errors"
-	"github.com/aloknerurkar/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config"
 	logger "github.com/ipfs/go-log/v2"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
 	opentracing "github.com/opentracing/opentracing-go"

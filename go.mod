@@ -1,4 +1,4 @@
-module github.com/aloknerurkar/go-msuite
+module github.com/plexsysio/go-msuite
 
 go 1.13
 
@@ -7,7 +7,7 @@ require (
 	github.com/SWRMLabs/ss-ds-store v0.0.7
 	github.com/SWRMLabs/ss-store v0.0.4
 	github.com/SWRMLabs/ss-taskmanager v0.0.3
-	github.com/aloknerurkar/dLocker v0.0.1
+	github.com/plexsysio/dLocker v0.0.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/snappy v0.0.1 // indirect
