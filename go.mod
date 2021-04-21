@@ -7,7 +7,6 @@ require (
 	github.com/SWRMLabs/ss-ds-store v0.0.7
 	github.com/SWRMLabs/ss-store v0.0.4
 	github.com/SWRMLabs/ss-taskmanager v0.0.3
-	github.com/plexsysio/dLocker v0.0.1
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang/snappy v0.0.1 // indirect
@@ -28,6 +27,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.3.1
 	github.com/multiformats/go-multiaddr-net v0.2.0
 	github.com/opentracing/opentracing-go v1.2.0
+	github.com/plexsysio/dLocker v0.0.2
 	github.com/prometheus/client_golang v1.7.1
 	github.com/rs/cors v1.7.0
 	github.com/slok/go-http-metrics v0.9.0

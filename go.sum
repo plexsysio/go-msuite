@@ -71,10 +71,6 @@ github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRF
 github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5 h1:iW0a5ljuFxkLGPNem5Ui+KBjFJzKg4Fv2fnxe4dvzpM=
 github.com/alexbrainman/goissue34681 v0.0.0-20191006012335-3fc7a47baff5/go.mod h1:Y2QMoi1vgtOIfc+6DhrMOGkLoGzqSV2rKp4Sm+opsyA=
-github.com/plexsysio/conn-pool v0.0.1 h1:XWXSMZ18kbRRYC4a0BFTD9JR/mDbhSKay+4GTlVSRW0=
-github.com/plexsysio/conn-pool v0.0.1/go.mod h1:R5KFRvyV/QQI0pz5sYEuXDyJlmjT6sdGXfOGLL/yQtA=
-github.com/plexsysio/dLocker v0.0.1 h1:6OyhbxwgOHWhtLs4a2AbIJNkvYMUVP2WHs3mUVUr5Q4=
-github.com/plexsysio/dLocker v0.0.1/go.mod h1:gxbHPGEhs5D4KwVpHVLAG/qXUnYWYU0ECmY653pG620=
 github.com/anmitsu/go-shlex v0.0.0-20161002113705-648efa622239/go.mod h1:2FmKhYUyUczH0OGQWaF5ceTx0UBShxjsH6f8oGKYe2c=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/armon/circbuf v0.0.0-20150827004946-bbbad097214e/go.mod h1:3U/XgcO3hCbHZ8TKRvWD2dDTCfh9M9ya+I9JpbB7O8o=
@@ -1092,6 +1088,10 @@ github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/profile v1.5.0/go.mod h1:qBsxPvzyUincmltOk6iyRVxHYg4adc0OFOv72ZdLa18=
+github.com/plexsysio/conn-pool v0.0.2 h1:BBlf+bpSWPVz1S7tvCWYuwjSnJCp7mVBfYB+Qj4PziM=
+github.com/plexsysio/conn-pool v0.0.2/go.mod h1:UwY6W9N1KZm0LSdSvPg6uPmAHFPPzkhLDUOmS83YyOE=
+github.com/plexsysio/dLocker v0.0.2 h1:8x1XbEYhHY5Gsn5HoJshHR5CXrycjROvthiUbXpiP5A=
+github.com/plexsysio/dLocker v0.0.2/go.mod h1:tT6etSwDU5tonYROk4RHXvoPLsMf6pYHA6J/pWLgREw=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/polydawn/refmt v0.0.0-20190221155625-df39d6c2d992/go.mod h1:uIp+gprXxxrWSjjklXD+mN4wed/tMfjMMmN/9+JsA9o=
