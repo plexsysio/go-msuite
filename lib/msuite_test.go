@@ -9,7 +9,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	logger.SetLogLevel("*", "Debug")
+	logger.SetLogLevel("*", "Error")
 	os.Exit(m.Run())
 }
 
@@ -198,8 +198,8 @@ func TestHTTP(t *testing.T) {
 		t.Fatal("Expected error accessing GRPC")
 	}
 	_, err = app.TM()
-	if err == nil {
-		t.Fatal("Expected error accessing TM")
+	if err != nil {
+		t.Fatal("Failed accessing TM", err.Error())
 	}
 	_, err = app.HTTP()
 	if err != nil {

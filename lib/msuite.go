@@ -6,6 +6,16 @@ import (
 	"errors"
 	"github.com/SWRMLabs/ss-store"
 	"github.com/SWRMLabs/ss-taskmanager"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
+	ds "github.com/ipfs/go-datastore"
+	logger "github.com/ipfs/go-log/v2"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/discovery"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/routing"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/mitchellh/go-homedir"
 	"github.com/plexsysio/dLocker"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/config"
@@ -20,16 +30,6 @@ import (
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 	"github.com/plexsysio/go-msuite/utils"
-	ipfslite "github.com/hsanjuan/ipfs-lite"
-	ds "github.com/ipfs/go-datastore"
-	logger "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/libp2p/go-libp2p-core/discovery"
-	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/libp2p/go-libp2p-core/routing"
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/mitchellh/go-homedir"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"net/http"
@@ -162,13 +162,16 @@ func defaultOpts(c *BuildCfg) {
 		}
 		c.root = filepath.Join(hd, ".msuite")
 	}
-	if c.cfg.IsSet("UseP2P") || c.cfg.IsSet("UseTCP") {
+	if c.cfg.IsSet("UseP2P") || c.cfg.IsSet("UseTCP") || c.cfg.IsSet("UseHTTP") {
 		c.tmCount += 1
 		if c.cfg.IsSet("UseTCP") {
 			c.tmCount += 1
 		}
 		if c.cfg.IsSet("UseP2P") {
 			c.tmCount += 2
+		}
+		if c.cfg.IsSet("UseHTTP") {
+			c.tmCount += 1
 		}
 	}
 }
@@ -216,7 +219,7 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func() string {
 			return bCfg.svcName
 		}),
-		status.Module,
+		utils.MaybeOption(status.Module, bCfg.cfg.IsSet("UseHTTP")),
 		utils.MaybeOption(locker.Module, bCfg.cfg.IsSet("UseLocker")),
 		auth.Module(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),

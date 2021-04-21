@@ -3,6 +3,8 @@ package grpcServer
 import (
 	"context"
 	"fmt"
+	"github.com/grpc-ecosystem/go-grpc-middleware"
+	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"github.com/plexsysio/go-msuite/modules/grpc/middleware"
@@ -10,8 +12,6 @@ import (
 	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
 	"github.com/plexsysio/go-msuite/modules/grpc/transport/tcp"
 	"github.com/plexsysio/go-msuite/utils"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
-	logger "github.com/ipfs/go-log/v2"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
@@ -21,14 +21,14 @@ var log = logger.Logger("grpc_service")
 type GrpcServerParams struct {
 	fx.In
 
-	Opts   []grpc.ServerOption
-	Listnr *grpcmux.Mux
+	Opts      []grpc.ServerOption
+	Listnr    *grpcmux.Mux
+	StManager status.Manager `optional:"true"`
 }
 
 func New(
 	lc fx.Lifecycle,
 	params GrpcServerParams,
-	st status.Manager,
 ) (*grpc.Server, error) {
 	rpcSrv := grpc.NewServer(params.Opts...)
 	lc.Append(fx.Hook{
@@ -38,15 +38,22 @@ func New(
 				err := rpcSrv.Serve(params.Listnr)
 				if err != nil {
 					log.Error("Failed to serve gRPC", err.Error())
-					st.Report("GRPC server",
-						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
+					if params.StManager != nil {
+						params.StManager.Report("GRPC server",
+							status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
+
+					}
 				}
 			}()
-			st.Report("GRPC server", status.String("Running"))
+			if params.StManager != nil {
+				params.StManager.Report("GRPC server", status.String("Running"))
+			}
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			defer st.Report("GRPC server", status.String("Stopped"))
+			if params.StManager != nil {
+				defer params.StManager.Report("GRPC server", status.String("Stopped"))
+			}
 			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil
