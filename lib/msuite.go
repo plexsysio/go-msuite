@@ -29,6 +29,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/locker"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
+	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -151,6 +152,13 @@ func WithPrometheus(useLatency bool) Option {
 	}
 }
 
+func WithStaticDiscovery(svcAddrs map[string]string) Option {
+	return func(c *BuildCfg) {
+		c.cfg.Set("UseStaticDiscovery", true)
+		c.cfg.Set("StaticAddresses", svcAddrs)
+	}
+}
+
 func defaultOpts(c *BuildCfg) {
 	if len(c.svcName) == 0 {
 		c.svcName = "msuite"
@@ -198,6 +206,8 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func(lc fx.Lifecycle) (repo.Repo, config.Config, ds.Batching) {
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
+					log.Debugf("Closing repo")
+					defer log.Debugf("Closed repo")
 					r.Close()
 					return nil
 				},
@@ -226,8 +236,9 @@ func New(opts ...Option) (Service, error) {
 		utils.MaybeOption(grpcServer.Module(r.Config()),
 			bCfg.cfg.IsSet("UseTCP") || bCfg.cfg.IsSet("UseP2P")),
 		mhttp.Module(r.Config()),
-		utils.MaybeOption(grpcclient.Module, bCfg.cfg.IsSet("UseP2P")),
+		grpcclient.Module(r.Config()),
 		utils.MaybeOption(events.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeOption(sharedStorage.Module, bCfg.cfg.IsSet("UseP2P")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
@@ -265,6 +276,7 @@ type impl struct {
 	Jm   auth.JWTManager          `optional:"true"`
 	Ev   events.Events            `optional:"true"`
 	Cs   grpcclient.ClientSvc     `optional:"true"`
+	ShSt sharedStorage.Provider   `optional:"true"`
 }
 
 func (s *impl) Repo() repo.Repo {
@@ -283,10 +295,6 @@ func (s *impl) Node() (Node, error) {
 		return nil, errors.New("Node not configured")
 	}
 	return s, nil
-}
-
-func (s *impl) Storage() store.Store {
-	return s.St
 }
 
 // P2P API
@@ -376,4 +384,11 @@ func (s *impl) Events() (events.Events, error) {
 		return nil, errors.New("Events not configured")
 	}
 	return s.Ev, nil
+}
+
+func (s *impl) SharedStorage(ns string, cb sharedStorage.Callback) (store.Store, error) {
+	if s.ShSt == nil {
+		return nil, errors.New("shared storage provider not configured")
+	}
+	return s.ShSt.SharedStorage(ns, cb)
 }

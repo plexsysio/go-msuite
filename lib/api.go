@@ -4,15 +4,16 @@ import (
 	"context"
 	"github.com/SWRMLabs/ss-store"
 	"github.com/SWRMLabs/ss-taskmanager"
-	"github.com/plexsysio/dLocker"
-	"github.com/plexsysio/go-msuite/modules/auth"
-	"github.com/plexsysio/go-msuite/modules/events"
-	"github.com/plexsysio/go-msuite/modules/repo"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/plexsysio/dLocker"
+	"github.com/plexsysio/go-msuite/modules/auth"
+	"github.com/plexsysio/go-msuite/modules/events"
+	"github.com/plexsysio/go-msuite/modules/repo"
+	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"google.golang.org/grpc"
 	"net/http"
 	"os"
@@ -31,10 +32,10 @@ type Service interface {
 	HTTP() (HTTP, error)
 	Locker() (dLocker.DLocker, error)
 	Events() (events.Events, error)
+	SharedStorage(string, sharedStorage.Callback) (store.Store, error)
 }
 
 type Node interface {
-	Storage() store.Store
 	P2P() P2P
 	Pubsub() *pubsub.PubSub
 	IPFS() *ipfslite.Peer
