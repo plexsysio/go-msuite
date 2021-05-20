@@ -5,18 +5,22 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/SWRMLabs/ants-db"
-	"github.com/SWRMLabs/ss-store"
-	"github.com/plexsysio/go-msuite/modules/config"
+	"time"
+
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/ipfs/go-datastore"
+	"github.com/libp2p/go-libp2p"
+	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	p2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
+	libp2ptls "github.com/libp2p/go-libp2p-tls"
 	multiaddr "github.com/multiformats/go-multiaddr"
+	"github.com/plexsysio/go-msuite/modules/config"
 )
 
 func Identity(conf config.Config) (crypto.PrivKey, error) {
@@ -40,6 +44,16 @@ func Identity(conf config.Config) (crypto.PrivKey, error) {
 	return priv, nil
 }
 
+var Libp2pOptionsExtra = []libp2p.Option{
+	libp2p.NATPortMap(),
+	libp2p.ConnectionManager(connmgr.NewConnManager(10, 50, time.Minute)),
+	libp2p.EnableAutoRelay(),
+	libp2p.EnableNATService(),
+	libp2p.Security(libp2ptls.ID, libp2ptls.New),
+	libp2p.Transport(libp2pquic.NewTransport),
+	libp2p.DefaultTransports,
+}
+
 func Libp2p(
 	ctx context.Context,
 	conf config.Config,
@@ -61,7 +75,7 @@ func Libp2p(
 		nil,
 		listenAddrs,
 		nil,
-		ipfslite.Libp2pOptionsExtra...,
+		Libp2pOptionsExtra...,
 	)
 }
 
@@ -88,13 +102,4 @@ func Pubsub(ctx context.Context, h host.Host) (*pubsub.PubSub, error) {
 
 func NewSvcDiscovery(r routing.Routing) discovery.Discovery {
 	return p2pdiscovery.NewRoutingDiscovery(r)
-}
-
-func NewAntsDB(p *ipfslite.Peer, ps *pubsub.PubSub, ds datastore.Batching) (store.Store, error) {
-	return antsdb.New(
-		p,
-		ps,
-		ds,
-		antsdb.WithChannel("msuite"),
-	)
 }

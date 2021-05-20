@@ -10,6 +10,5 @@ var Module = fx.Options(
 	fx.Provide(NewNode),
 	fx.Provide(Pubsub),
 	fx.Provide(NewSvcDiscovery),
-	fx.Provide(NewAntsDB),
 	fx.Invoke(NewMDNSDiscovery),
 )

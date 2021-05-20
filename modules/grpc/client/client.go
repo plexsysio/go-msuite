@@ -5,16 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SWRMLabs/ss-taskmanager"
-	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
+	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"time"
 )
 
-var Module = fx.Provide(NewClientService)
+var Module = func(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeProvide(NewP2PClientService, c.IsSet("UseP2P")),
+		utils.MaybeProvide(NewStaticClientService, !c.IsSet("UseP2P") && c.IsSet("UseStaticDiscovery")),
+	)
+}
 
 var log = logger.Logger("grpc/client")
 
@@ -22,7 +29,7 @@ type ClientSvc interface {
 	Get(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error)
 }
 
-func NewClientService(
+func NewP2PClientService(
 	svcName string,
 	d discovery.Discovery,
 	h host.Host,
@@ -99,4 +106,28 @@ func (c *clientImpl) Get(
 		}
 	}
 	return nil, errors.New("Invalid address received for peer")
+}
+
+func NewStaticClientService(c config.Config) ClientSvc {
+	svcAddrs := make(map[string]string)
+	c.Get("StaticAddresses", &svcAddrs)
+	return &staticClientImpl{
+		svcAddrs: svcAddrs,
+	}
+}
+
+type staticClientImpl struct {
+	svcAddrs map[string]string
+}
+
+func (c *staticClientImpl) Get(
+	ctx context.Context,
+	svc string,
+	opts ...grpc.DialOption,
+) (*grpc.ClientConn, error) {
+	addr, ok := c.svcAddrs[svc]
+	if !ok {
+		return nil, errors.New("service address not configured")
+	}
+	return grpc.DialContext(ctx, addr, opts...)
 }

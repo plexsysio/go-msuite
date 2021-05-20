@@ -14,14 +14,22 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
 	github.com/hsanjuan/ipfs-lite v1.1.18
+	github.com/ipfs/go-blockservice v0.1.4
+	github.com/ipfs/go-cid v0.0.7
 	github.com/ipfs/go-datastore v0.4.5
 	github.com/ipfs/go-ds-flatfs v0.4.5
 	github.com/ipfs/go-ds-leveldb v0.4.2
-	github.com/ipfs/go-log/v2 v2.1.1
+	github.com/ipfs/go-ipfs-blockstore v1.0.3
+	github.com/ipfs/go-ipld-format v0.2.0
+	github.com/ipfs/go-log/v2 v2.1.3
+	github.com/ipfs/go-merkledag v0.3.2
 	github.com/libp2p/go-libp2p v0.13.0
-	github.com/libp2p/go-libp2p-core v0.8.0
+	github.com/libp2p/go-libp2p-connmgr v0.2.4
+	github.com/libp2p/go-libp2p-core v0.8.5
 	github.com/libp2p/go-libp2p-discovery v0.5.0
 	github.com/libp2p/go-libp2p-pubsub v0.4.1
+	github.com/libp2p/go-libp2p-quic-transport v0.10.0
+	github.com/libp2p/go-libp2p-tls v0.1.3
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moxiaomomo/grpc-jaeger v0.0.0-20180617090213-05b879580c4a
 	github.com/multiformats/go-multiaddr v0.3.1
@@ -36,3 +44,7 @@ require (
 	go.uber.org/fx v1.10.0
 	google.golang.org/grpc v1.36.0
 )
+
+replace github.com/hsanjuan/ipfs-lite => github.com/plexsysio/ipfs-lite v1.1.21
+
+replace github.com/SWRMLabs/ants-db => github.com/plexsysio/ants-db v0.0.4
