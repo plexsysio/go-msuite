@@ -35,6 +35,7 @@ func NewSharedStoreProvider(
 	return &impl{
 		p:  peer,
 		ds: ds,
+		ps: ps,
 	}
 }
 

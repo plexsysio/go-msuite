@@ -169,6 +169,11 @@ func TestNode(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
+	st, err := app.SharedStorage("test", nil)
+	if err != nil {
+		t.Fatal("Failed creating shared store", err.Error())
+	}
+	st.Close()
 	<-time.After(time.Second * 3)
 	err = app.Stop(context.Background())
 	if err != nil {
