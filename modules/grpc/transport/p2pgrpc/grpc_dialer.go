@@ -2,11 +2,13 @@ package p2pgrpc
 
 import (
 	"context"
-	"github.com/libp2p/go-libp2p-core/host"
-	peer "github.com/libp2p/go-libp2p-core/peer"
-	"google.golang.org/grpc"
 	"net"
 	"time"
+
+	"github.com/libp2p/go-libp2p-core/host"
+	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-gostream"
+	"google.golang.org/grpc"
 )
 
 type P2PGrpcDialer interface {
@@ -28,21 +30,11 @@ func (p *p2pDialer) getDialer(ctx context.Context) grpc.DialOption {
 		subCtx, subCtxCancel := context.WithTimeout(ctx, timeout)
 		defer subCtxCancel()
 
-		id, err := peer.IDB58Decode(peerIdStr)
+		pid, err := peer.IDB58Decode(peerIdStr)
 		if err != nil {
 			return nil, err
 		}
-		err = p.Connect(subCtx, peer.AddrInfo{
-			ID: id,
-		})
-		if err != nil {
-			return nil, err
-		}
-		stream, err := p.NewStream(ctx, id, Protocol)
-		if err != nil {
-			return nil, err
-		}
-		return &p2pConn{Stream: stream}, nil
+		return gostream.Dial(subCtx, p, pid, Protocol)
 	})
 }
 

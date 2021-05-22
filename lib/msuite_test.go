@@ -142,8 +142,8 @@ func TestNode(t *testing.T) {
 		t.Fatal("Failed accessing Node", err.Error())
 	}
 	_, err = app.GRPC()
-	if err != nil {
-		t.Fatal("Failed accessing GRPC", err.Error())
+	if err == nil {
+		t.Fatal("Expected error accessing GRPC")
 	}
 	_, err = app.HTTP()
 	if err == nil {
@@ -237,11 +237,12 @@ func TestHTTP(t *testing.T) {
 	}
 }
 
-func TestLockerAuth(t *testing.T) {
+func TestGRPCLockerAuth(t *testing.T) {
 	defer os.RemoveAll("tmp4")
 	app, err := New(
 		WithRepositoryRoot("tmp4"),
 		WithP2PPort(10000),
+		WithGRPC(),
 		WithGRPCTCPListener(10001),
 		WithLocker("inmem", nil),
 		WithJWT("dummysecret"),

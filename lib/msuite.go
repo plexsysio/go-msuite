@@ -54,6 +54,12 @@ type BuildCfg struct {
 
 type Option func(c *BuildCfg)
 
+func WithGRPC() Option {
+	return func(c *BuildCfg) {
+		c.cfg.Set("UseGRPC", true)
+	}
+}
+
 func WithGRPCTCPListener(port int) Option {
 	return func(c *BuildCfg) {
 		c.cfg.Set("UseTCP", true)
@@ -233,8 +239,7 @@ func New(opts ...Option) (Service, error) {
 		utils.MaybeOption(locker.Module, bCfg.cfg.IsSet("UseLocker")),
 		auth.Module(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),
-		utils.MaybeOption(grpcServer.Module(r.Config()),
-			bCfg.cfg.IsSet("UseTCP") || bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeOption(grpcServer.Module(r.Config()), bCfg.cfg.IsSet("UseGRPC")),
 		mhttp.Module(r.Config()),
 		grpcclient.Module(r.Config()),
 		utils.MaybeOption(events.Module, bCfg.cfg.IsSet("UseP2P")),
