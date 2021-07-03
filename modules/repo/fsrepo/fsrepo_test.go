@@ -1,9 +1,11 @@
-package fsrepo
+package fsrepo_test
 
 import (
-	"github.com/plexsysio/go-msuite/modules/config/json"
 	"os"
 	"testing"
+
+	"github.com/plexsysio/go-msuite/modules/config/json"
+	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 )
 
 func TestInit(t *testing.T) {
@@ -13,17 +15,17 @@ func TestInit(t *testing.T) {
 	}()
 	cfg := jsonConf.DefaultConfig()
 
-	err := Init(".testrepo", cfg)
+	err := fsrepo.Init(".testrepo", cfg)
 	if err != nil {
 		t.Fatal("Failed initializing repo", err)
 	}
 
-	err = Init(".testrepo", cfg)
+	err = fsrepo.Init(".testrepo", cfg)
 	if err == nil {
 		t.Fatal("Should not be able to initialize already initialized repo")
 	}
 
-	err = Init(".testrepo2", cfg)
+	err = fsrepo.Init(".testrepo2", cfg)
 	if err != nil {
 		t.Fatal("Failed to initialize repo with different path", err)
 	}
@@ -33,43 +35,43 @@ func TestOpen(t *testing.T) {
 	defer func() {
 		os.RemoveAll(".testrepo")
 	}()
-	_, err := Open(".testrepo")
+	_, err := fsrepo.Open(".testrepo")
 	if err == nil {
 		t.Fatal("Able to open repo which is not initialized")
 	}
-	err = Init(".testrepo", jsonConf.DefaultConfig())
+	err = fsrepo.Init(".testrepo", jsonConf.DefaultConfig())
 	if err != nil {
 		t.Fatal("Failed to initialize repo", err)
 	}
-	r, err := Open(".testrepo")
+	r, err := fsrepo.Open(".testrepo")
 	if err != nil {
 		t.Fatal("Failed to open initialized repo", err)
 	}
-	r2, err := Open(".testrepo")
+	r2, err := fsrepo.Open(".testrepo")
 	if err != nil {
 		t.Fatal("Unable to open already opened repo", err)
 	}
 	if r2 != r {
 		t.Fatal("Newly opened repo doesnt match already open one")
 	}
-	if opener.refCnt != 2 {
-		t.Fatal("RefCnt is incorrect", opener)
+	if fsrepo.GetRefCnt() != 2 {
+		t.Fatal("RefCnt is incorrect", fsrepo.GetRefCnt())
 	}
 	err = r.Close()
 	if err != nil {
 		t.Fatal("Failed closing repo", err)
 	}
-	if opener.refCnt != 1 {
-		t.Fatal("RefCnt is incorrect", opener)
+	if fsrepo.GetRefCnt() != 1 {
+		t.Fatal("RefCnt is incorrect", fsrepo.Opener)
 	}
 	err = r2.Close()
 	if err != nil {
 		t.Fatal("Failed closing repo", err)
 	}
-	if opener.refCnt != 0 {
-		t.Fatal("RefCnt is incorrect", opener)
+	if fsrepo.GetRefCnt() != 0 {
+		t.Fatal("RefCnt is incorrect", fsrepo.Opener)
 	}
-	if opener.active != nil {
+	if fsrepo.GetActive() != nil {
 		t.Fatal("Close did not clear internal stores")
 	}
 }

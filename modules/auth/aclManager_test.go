@@ -1,13 +1,15 @@
-package auth
+package auth_test
 
 import (
+	"testing"
+
 	dsstore "github.com/SWRMLabs/ss-ds-store"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
 	ds "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
-	"testing"
+	"github.com/plexsysio/go-msuite/modules/auth"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config/json"
 )
 
 type testRepo struct {
@@ -50,7 +52,7 @@ func TestNewAclManager(t *testing.T) {
 	r := newTestRepo()
 	defer r.Close()
 
-	_, err := NewAclManager(r)
+	_, err := auth.NewAclManager(r)
 	if err != nil {
 		t.Fatal("Failed creating new acl manager", err.Error())
 	}
@@ -63,7 +65,7 @@ func TestNewAclManagerWithAcls(t *testing.T) {
 	r.Config().Set("ACL", map[string]string{
 		"dummy": "invalidACL",
 	})
-	_, err := NewAclManager(r)
+	_, err := auth.NewAclManager(r)
 	if err == nil {
 		t.Fatal("Expected error while creating new acl manager")
 	}
@@ -71,7 +73,7 @@ func TestNewAclManagerWithAcls(t *testing.T) {
 	r.Config().Set("ACL", map[string]string{
 		"dummy": "admin",
 	})
-	_, err = NewAclManager(r)
+	_, err = auth.NewAclManager(r)
 	if err != nil {
 		t.Fatal("Failed creating new acl manager with ACLs", err.Error())
 	}
@@ -81,37 +83,37 @@ func TestACLLifecycle(t *testing.T) {
 	r := newTestRepo()
 	defer r.Close()
 
-	am, err := NewAclManager(r)
+	am, err := auth.NewAclManager(r)
 	if err != nil {
 		t.Fatal("Failed creating new acl manager", err.Error())
 	}
 	roles := am.Allowed("dummyresource")
-	if len(roles) != 6 || roles[0] != None {
+	if len(roles) != 6 || roles[0] != auth.None {
 		t.Fatalf("Invalid allowed role for no ACL %v", roles)
 	}
 	err = am.Configure("dummyresouce", "invalidACL")
 	if err == nil {
 		t.Fatal("Expected failure creating invalid ACL")
 	}
-	err = am.Configure("dummyresource", Admin)
+	err = am.Configure("dummyresource", auth.Admin)
 	if err != nil {
 		t.Fatal("Failed creating new ACL", err.Error())
 	}
 	roles = am.Allowed("dummyresource")
-	if len(roles) != 1 || roles[0] != Admin {
+	if len(roles) != 1 || roles[0] != auth.Admin {
 		t.Fatalf("Invalid allowed role for no ACL %v", roles)
 	}
-	if am.Authorized("dummyresource", AuthWrite) {
+	if am.Authorized("dummyresource", auth.AuthWrite) {
 		t.Fatal("Authorized incorrect ACL")
 	}
-	err = am.Configure("dummyresource", PublicWrite)
+	err = am.Configure("dummyresource", auth.PublicWrite)
 	if err != nil {
 		t.Fatal("Failed creating new ACL", err.Error())
 	}
-	if !am.Authorized("dummyresource", AuthWrite) {
-		t.Fatal("Expected authorization for ACL", AuthWrite)
+	if !am.Authorized("dummyresource", auth.AuthWrite) {
+		t.Fatal("Expected authorization for ACL", auth.AuthWrite)
 	}
-	if am.Authorized("dummyresource", PublicRead) {
+	if am.Authorized("dummyresource", auth.PublicRead) {
 		t.Fatal("Authorized incorrect ACL")
 	}
 	roles = am.Allowed("dummyresource")
@@ -119,7 +121,7 @@ func TestACLLifecycle(t *testing.T) {
 		t.Fatal("Invalid allowed list", roles)
 	}
 	for _, rl := range roles {
-		if rl == PublicRead {
+		if rl == auth.PublicRead {
 			t.Fatal("Invalid role in allowed list", rl)
 		}
 	}
@@ -127,7 +129,7 @@ func TestACLLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to delete ACL", err.Error())
 	}
-	if !am.Authorized("dummyresource", AuthWrite) {
-		t.Fatal("Expected authorization for ACL", AuthWrite)
+	if !am.Authorized("dummyresource", auth.AuthWrite) {
+		t.Fatal("Expected authorization for ACL", auth.AuthWrite)
 	}
 }

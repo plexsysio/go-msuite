@@ -2,12 +2,13 @@ package grpcmux
 
 import (
 	"context"
+	"io"
+	"net"
+
 	"github.com/SWRMLabs/ss-taskmanager"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"go.uber.org/fx"
-	"io"
-	"net"
 )
 
 var log = logger.Logger("grpc/lmux")
@@ -46,12 +47,7 @@ func NewMuxedListener(
 	listeners MuxIn,
 	tm *taskmanager.TaskManager,
 ) (*Mux, error) {
-	m := &Mux{
-		listeners: listeners.Listeners,
-		tm:        tm,
-		connChan:  make(chan net.Conn, 50),
-	}
-	m.muxCtx, m.muxCancel = context.WithCancel(ctx)
+	m := New(ctx, listeners, tm)
 	m.start(func(key string, err error) {
 		dMap := map[string]interface{}{
 			key: "Failed Err:" + err.Error(),
@@ -61,19 +57,19 @@ func NewMuxedListener(
 		}
 	})
 	stMp := make(map[string]interface{})
-	for _, v := range listeners.Listeners {
-		stMp[v.Tag] = "Running"
-	}
 	if listeners.StManager != nil {
+		for _, v := range listeners.Listeners {
+			stMp[v.Tag] = "Running"
+		}
 		listeners.StManager.Report("RPC Listeners", status.Map(stMp))
 	}
 	lc.Append(fx.Hook{
 		OnStop: func(c context.Context) error {
 			defer func() {
-				for k, _ := range stMp {
-					stMp[k] = "Stopped"
-				}
 				if listeners.StManager != nil {
+					for k, _ := range stMp {
+						stMp[k] = "Stopped"
+					}
 					listeners.StManager.Report("RPC Listeners", status.Map(stMp))
 				}
 			}()
@@ -86,6 +82,22 @@ func NewMuxedListener(
 		},
 	})
 	return m, nil
+}
+
+func New(
+	ctx context.Context,
+	listeners MuxIn,
+	tm *taskmanager.TaskManager,
+) *Mux {
+	muxCtx, muxCancel := context.WithCancel(ctx)
+	m := &Mux{
+		muxCtx:    muxCtx,
+		muxCancel: muxCancel,
+		listeners: listeners.Listeners,
+		tm:        tm,
+		connChan:  make(chan net.Conn, 50),
+	}
+	return m
 }
 
 func (m *Mux) start(reportError func(string, error)) {

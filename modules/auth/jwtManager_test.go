@@ -1,19 +1,21 @@
-package auth
+package auth_test
 
 import (
-	"github.com/plexsysio/go-msuite/modules/config/json"
 	"testing"
 	"time"
+
+	"github.com/plexsysio/go-msuite/modules/auth"
+	"github.com/plexsysio/go-msuite/modules/config/json"
 )
 
 func TestNewJWTManager(t *testing.T) {
 	cfg := jsonConf.DefaultConfig()
-	_, err := NewJWTManager(cfg)
+	_, err := auth.NewJWTManager(cfg)
 	if err == nil {
 		t.Fatal("Expected error while creating new JWT Manager")
 	}
 	cfg.Set("JWTSecret", "dummySecret")
-	_, err = NewJWTManager(cfg)
+	_, err = auth.NewJWTManager(cfg)
 	if err != nil {
 		t.Fatal("Failed creating new JWT Manager", err.Error())
 	}
@@ -39,7 +41,7 @@ func (a *authUser) Mtdt() map[string]interface{} {
 func TestGenerateVerify(t *testing.T) {
 	cfg := jsonConf.DefaultConfig()
 	cfg.Set("JWTSecret", "dummySecret")
-	jm, err := NewJWTManager(cfg)
+	jm, err := auth.NewJWTManager(cfg)
 	if err != nil {
 		t.Fatal("Failed creating new JWT Manager", err.Error())
 	}

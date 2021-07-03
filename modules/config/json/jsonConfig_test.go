@@ -1,9 +1,11 @@
-package jsonConf
+package jsonConf_test
 
 import (
-	"github.com/plexsysio/go-msuite/utils"
 	"os"
 	"testing"
+
+	"github.com/plexsysio/go-msuite/modules/config/json"
+	"github.com/plexsysio/go-msuite/utils"
 )
 
 type Storage struct {
@@ -15,7 +17,7 @@ type Location struct {
 }
 
 func TestGetSetConfig(t *testing.T) {
-	var conf = &JsonConfig{}
+	var conf = &jsonConf.JsonConfig{}
 
 	var deviceName = "newTestDevice"
 	conf.Set("device_name", deviceName)
@@ -42,7 +44,7 @@ func TestGetSetConfig(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed writing config to file")
 	}
-	conf2 := &JsonConfig{}
+	conf2 := &jsonConf.JsonConfig{}
 	err = utils.ReadFromFile(conf2, "tmp.json")
 	if err != nil {
 		t.Fatal("Failed reading config from file")
