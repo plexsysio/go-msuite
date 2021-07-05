@@ -48,7 +48,7 @@ func NewMuxedListener(
 	tm *taskmanager.TaskManager,
 ) (*Mux, error) {
 	m := New(ctx, listeners, tm)
-	m.start(func(key string, err error) {
+	m.Start(func(key string, err error) {
 		dMap := map[string]interface{}{
 			key: "Failed Err:" + err.Error(),
 		}
@@ -100,14 +100,16 @@ func New(
 	return m
 }
 
-func (m *Mux) start(reportError func(string, error)) {
+func (m *Mux) Start(reportError func(string, error)) {
 	for _, v := range m.listeners {
 		l := &muxListener{
 			tag:      v.Tag,
 			listener: v.Listener,
 			connChan: m.connChan,
 			reportErr: func(err error) {
-				reportError(v.Tag, err)
+				if reportError != nil {
+					reportError(v.Tag, err)
+				}
 			},
 		}
 		m.tm.GoWork(l)
