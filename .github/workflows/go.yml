@@ -28,6 +28,8 @@ jobs:
           ${{ runner.OS }}-build-${{ env.cache-name }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
+    - name: Run golangci-lint
+      uses: golangci/golangci-lint-action@v2.5.2
     - name: Build
       run: go build -trimpath ./...
     - name: Test
