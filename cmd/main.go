@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/plexsysio/go-msuite/lib"
 	logger "github.com/ipfs/go-log/v2"
+	"github.com/plexsysio/go-msuite/lib"
 )
 
 func main() {
-	logger.SetLogLevel("*", "Debug")
+	_ = logger.SetLogLevel("*", "Debug")
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx := context.Background()
 
 	app, err := msuite.New(
 		msuite.WithHTTP(10000),
@@ -20,11 +20,14 @@ func main() {
 		msuite.WithServiceACL(nil),
 		msuite.WithPrometheus(true),
 	)
+	if err != nil {
+		fmt.Printf("failed creating go-msuite node %s\n", err.Error())
+		return
+	}
 	fmt.Println("Starting")
 	err = app.Start(ctx)
 	if err != nil {
-		fmt.Println("Failed starting app", err.Error())
-		cancel()
+		fmt.Println("failed starting app", err.Error())
 		return
 	}
 	<-app.Done()

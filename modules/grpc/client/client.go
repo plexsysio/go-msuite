@@ -94,18 +94,18 @@ func (c *clientImpl) Get(
 	}
 	select {
 	case <-time.After(time.Second * 10):
-		return nil, errors.New("Unable to find peer for service " + svc)
+		return nil, errors.New("unable to find peer for service " + svc)
 	case pAddr, ok := <-p:
 		if ok {
 			err = c.h.Connect(ctx, pAddr)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Failed to connect to peer %v", pAddr))
+				return nil, fmt.Errorf("failed to connect to peer %v", pAddr)
 			}
 			log.Infof("Connected to peer %v for service %s", pAddr, svc)
 			return p2pgrpc.NewP2PDialer(c.h).Dial(ctx, pAddr.ID.String(), opts...)
 		}
 	}
-	return nil, errors.New("Invalid address received for peer")
+	return nil, errors.New("invalid address received for peer")
 }
 
 func NewStaticClientService(c config.Config) ClientSvc {

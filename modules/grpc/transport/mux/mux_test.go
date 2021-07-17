@@ -63,7 +63,7 @@ func TestMultipleListeners(t *testing.T) {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for _ = range connChan {
+		for range connChan {
 			count++
 			if count == 3 {
 				m.Close()

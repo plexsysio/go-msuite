@@ -6,14 +6,14 @@ import (
 	"fmt"
 	ssStore "github.com/SWRMLabs/ss-ds-store"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
-	"github.com/plexsysio/go-msuite/modules/repo"
-	"github.com/plexsysio/go-msuite/utils"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/config/json"
+	"github.com/plexsysio/go-msuite/modules/repo"
+	"github.com/plexsysio/go-msuite/utils"
 	"path/filepath"
 	"sync"
 )
@@ -80,7 +80,7 @@ type fsRepoErr struct {
 	secErr []error
 }
 
-func (f fsRepoErr) Error() string {
+func (f *fsRepoErr) Error() string {
 	if f.secErr != nil && len(f.secErr) > 0 {
 		errStr := ""
 		for i, v := range f.secErr {
@@ -91,16 +91,16 @@ func (f fsRepoErr) Error() string {
 	return fmt.Sprintf("fsRepo: %s", f.msg)
 }
 
-func (f fsRepoErr) Append(err error) {
+func (f *fsRepoErr) Append(err error) {
 	f.secErr = append(f.secErr, err)
 }
 
-func (f fsRepoErr) HasSecErr() bool {
+func (f *fsRepoErr) HasSecErr() bool {
 	return f.secErr != nil && len(f.secErr) > 0
 }
 
-func wrapError(msg string, secErr error) fsRepoErr {
-	err := fsRepoErr{msg: msg}
+func wrapError(msg string, secErr error) *fsRepoErr {
+	err := &fsRepoErr{msg: msg}
 	if secErr != nil {
 		err.Append(secErr)
 	}

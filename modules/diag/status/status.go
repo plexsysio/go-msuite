@@ -21,9 +21,7 @@ type Status interface {
 
 type String string
 
-func (s String) Delta(_ Status) {
-	return
-}
+func (s String) Delta(_ Status) {}
 
 type Map map[string]interface{}
 
@@ -66,7 +64,6 @@ func (m *impl) Report(key string, msg Status) {
 		msg.Delta(oldStatus)
 		m.mp.Store(key, msg)
 	}
-	return
 }
 
 func (m *impl) Status() map[string]interface{} {
@@ -87,5 +84,5 @@ func (m *impl) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(buf)
+	_, _ = w.Write(buf)
 }

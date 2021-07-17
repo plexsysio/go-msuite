@@ -67,7 +67,7 @@ func NewMuxedListener(
 		OnStop: func(c context.Context) error {
 			defer func() {
 				if listeners.StManager != nil {
-					for k, _ := range stMp {
+					for k := range stMp {
 						stMp[k] = "Stopped"
 					}
 					listeners.StManager.Report("RPC Listeners", status.Map(stMp))
