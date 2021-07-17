@@ -3,6 +3,10 @@ name: Go
 on: [pull_request]
 
 jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    uses: golangci/golangci-lint-action@v2.5.2
   build:
     name: Build
     runs-on: ${{ matrix.os }}
@@ -28,10 +32,6 @@ jobs:
           ${{ runner.OS }}-build-${{ env.cache-name }}-
           ${{ runner.OS }}-build-
           ${{ runner.OS }}-
-    - name: Lint
-      uses: golangci/golang-lint-action@v2
-      with:
-         version: latest
     - name: Build
       run: go build -trimpath ./...
     - name: Test
