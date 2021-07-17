@@ -1,12 +1,8 @@
 name: Go
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    uses: golangci/golangci-lint-action@v2.5.2
   build:
     name: Build
     runs-on: ${{ matrix.os }}
