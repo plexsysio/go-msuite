@@ -35,3 +35,20 @@ jobs:
       run: go build -trimpath ./...
     - name: Test
       run: go test -v ./...
+    - name: Test with race
+      run: go test -v -race -failfast ./...
+    - name: DeepSource Coverage
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        go test -coverprofile=cover.out ./...
+        curl https://deepsource.io/cli | sh
+        ./bin/deepsource report --analyzer test-coverage --key go --value-file ./cover.out
+      env:
+        DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+    - name: Coveralls
+      if: matrix.os == 'ubuntu-latest'
+      uses: shogo82148/actions-goveralls@v1
+      with:
+        path-to-profile: cover.out
+      env:
+        COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
