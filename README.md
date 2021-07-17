@@ -1,4 +1,7 @@
-# go-msuite [![Coverage Status](https://coveralls.io/repos/github/plexsysio/go-msuite/badge.svg?branch=master)](https://coveralls.io/github/plexsysio/go-msuite?branch=master) [![DeepSource](https://deepsource.io/gh/plexsysio/go-msuite.svg/?label=active+issues&show_trend=true&token=ObURascsEDWqoJfshvTBOc-w)](https://deepsource.io/gh/plexsysio/go-msuite/?ref=repository-badge)
+# go-msuite 
+[![Go](https://github.com/plexsysio/go-msuite/workflows/Go/badge.svg)](https://github.com/plexsysio/go-msuite/actions)
+[![Go Reference](https://pkg.go.dev/badge/github.com/plexsysio/go-msuite.svg)](https://pkg.go.dev/github.com/plexsysio/go-msuite)
+[![Coverage Status](https://coveralls.io/repos/github/plexsysio/go-msuite/badge.svg?branch=master)](https://coveralls.io/github/plexsysio/go-msuite?branch=master) [![DeepSource](https://deepsource.io/gh/plexsysio/go-msuite.svg/?label=active+issues&show_trend=true&token=ObURascsEDWqoJfshvTBOc-w)](https://deepsource.io/gh/plexsysio/go-msuite/?ref=repository-badge)
 Modular microservices framework in golang
 
 ## Introduction
