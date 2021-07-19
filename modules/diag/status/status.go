@@ -2,7 +2,7 @@ package status
 
 import (
 	"encoding/json"
-	"github.com/SWRMLabs/ss-taskmanager"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"net/http"
 	"sync"
@@ -72,7 +72,7 @@ func (m *impl) Status() map[string]interface{} {
 		retStatus[k.(string)] = v
 		return true
 	})
-	retStatus["Task Manager"] = m.tm.Status()
+	retStatus["Task Manager"] = m.tm.TaskStatus()
 	return retStatus
 }
 

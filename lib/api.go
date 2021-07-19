@@ -3,7 +3,6 @@ package msuite
 import (
 	"context"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/SWRMLabs/ss-taskmanager"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -14,6 +13,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/events"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
+	"github.com/plexsysio/taskmanager"
 	"google.golang.org/grpc"
 	"net/http"
 	"os"

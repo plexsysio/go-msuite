@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"github.com/SWRMLabs/ss-store"
-	"github.com/SWRMLabs/ss-taskmanager"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
@@ -31,10 +30,12 @@ import (
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/go-msuite/utils"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"net/http"
 	"path/filepath"
+	"time"
 )
 
 type FxLog struct{}
@@ -221,7 +222,7 @@ func New(opts ...Option) (Service, error) {
 			return r, r.Config(), r.Datastore()
 		}),
 		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
-			tm := taskmanager.NewTaskManager(ctx, int32(bCfg.tmCount))
+			tm := taskmanager.New(bCfg.tmCount, bCfg.tmCount*2, time.Second*15)
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
 					log.Debugf("Stopping taskmanager")

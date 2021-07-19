@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SWRMLabs/ss-taskmanager"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
 	"github.com/plexsysio/go-msuite/utils"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"time"
@@ -34,7 +34,7 @@ func NewP2PClientService(
 	d discovery.Discovery,
 	h host.Host,
 	tm *taskmanager.TaskManager,
-) ClientSvc {
+) (ClientSvc, error) {
 	csvc := &clientImpl{
 		ds:  d,
 		h:   h,
@@ -42,8 +42,11 @@ func NewP2PClientService(
 	}
 	// Start discovery provider
 	dp := &discoveryProvider{impl: csvc}
-	tm.GoWork(dp)
-	return csvc
+	_, err := tm.Go(dp)
+	if err != nil {
+		return nil, err
+	}
+	return csvc, nil
 }
 
 type discoveryProvider struct {
