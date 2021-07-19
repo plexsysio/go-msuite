@@ -3,9 +3,9 @@ package events
 import (
 	"context"
 	"encoding/json"
-	"github.com/SWRMLabs/ss-taskmanager"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-pubsub"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"sync"
 )
@@ -52,7 +52,10 @@ func NewEventsSvc(ps *pubsub.PubSub, tm *taskmanager.TaskManager) (Events, error
 		sub:  sub,
 		impl: eSvc,
 	}
-	tm.GoWork(l)
+	_, err = tm.Go(l)
+	if err != nil {
+		return nil, err
+	}
 	return eSvc, nil
 }
 

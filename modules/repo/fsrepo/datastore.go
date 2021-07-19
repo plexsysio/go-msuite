@@ -2,10 +2,10 @@ package fsrepo
 
 import (
 	"errors"
-	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/utils"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/mount"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/utils"
 	// "github.com/ipfs/go-ds-badger2"
 	"github.com/ipfs/go-ds-flatfs"
 	"github.com/ipfs/go-ds-leveldb"
@@ -88,9 +88,9 @@ func openDatastoreFromCfg(root string, c config.Config) (mDS ds.Batching, retErr
 			if !ok {
 				sn = true
 			}
-			sf, err := flatfs.ParseShardFunc(sFn)
-			if err != nil {
-				retErr = err
+			sf, e := flatfs.ParseShardFunc(sFn)
+			if e != nil {
+				retErr = e
 				return
 			}
 			newDs, err = flatfs.CreateOrOpen(path, sf, sn)

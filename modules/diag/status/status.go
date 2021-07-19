@@ -2,7 +2,7 @@ package status
 
 import (
 	"encoding/json"
-	"github.com/SWRMLabs/ss-taskmanager"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"net/http"
 	"sync"
@@ -21,9 +21,7 @@ type Status interface {
 
 type String string
 
-func (s String) Delta(_ Status) {
-	return
-}
+func (s String) Delta(_ Status) {}
 
 type Map map[string]interface{}
 
@@ -66,7 +64,6 @@ func (m *impl) Report(key string, msg Status) {
 		msg.Delta(oldStatus)
 		m.mp.Store(key, msg)
 	}
-	return
 }
 
 func (m *impl) Status() map[string]interface{} {
@@ -75,7 +72,7 @@ func (m *impl) Status() map[string]interface{} {
 		retStatus[k.(string)] = v
 		return true
 	})
-	retStatus["Task Manager"] = m.tm.Status()
+	retStatus["Task Manager"] = m.tm.TaskStatus()
 	return retStatus
 }
 
@@ -87,5 +84,5 @@ func (m *impl) httpHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(buf)
+	_, _ = w.Write(buf)
 }

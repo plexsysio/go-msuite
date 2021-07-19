@@ -5,9 +5,9 @@ import (
 	"io"
 	"net"
 
-	"github.com/SWRMLabs/ss-taskmanager"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 )
 
@@ -67,7 +67,7 @@ func NewMuxedListener(
 		OnStop: func(c context.Context) error {
 			defer func() {
 				if listeners.StManager != nil {
-					for k, _ := range stMp {
+					for k := range stMp {
 						stMp[k] = "Stopped"
 					}
 					listeners.StManager.Report("RPC Listeners", status.Map(stMp))
@@ -112,7 +112,10 @@ func (m *Mux) Start(reportError func(string, error)) {
 				}
 			},
 		}
-		m.tm.GoWork(l)
+		_, err := m.tm.Go(l)
+		if err != nil {
+			reportError(v.Tag, err)
+		}
 	}
 }
 

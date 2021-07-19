@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/SWRMLabs/ss-taskmanager"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
 	"github.com/plexsysio/go-msuite/utils"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"time"
@@ -34,7 +34,7 @@ func NewP2PClientService(
 	d discovery.Discovery,
 	h host.Host,
 	tm *taskmanager.TaskManager,
-) ClientSvc {
+) (ClientSvc, error) {
 	csvc := &clientImpl{
 		ds:  d,
 		h:   h,
@@ -42,8 +42,11 @@ func NewP2PClientService(
 	}
 	// Start discovery provider
 	dp := &discoveryProvider{impl: csvc}
-	tm.GoWork(dp)
-	return csvc
+	_, err := tm.Go(dp)
+	if err != nil {
+		return nil, err
+	}
+	return csvc, nil
 }
 
 type discoveryProvider struct {
@@ -94,18 +97,18 @@ func (c *clientImpl) Get(
 	}
 	select {
 	case <-time.After(time.Second * 10):
-		return nil, errors.New("Unable to find peer for service " + svc)
+		return nil, errors.New("unable to find peer for service " + svc)
 	case pAddr, ok := <-p:
 		if ok {
 			err = c.h.Connect(ctx, pAddr)
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("Failed to connect to peer %v", pAddr))
+				return nil, fmt.Errorf("failed to connect to peer %v", pAddr)
 			}
 			log.Infof("Connected to peer %v for service %s", pAddr, svc)
 			return p2pgrpc.NewP2PDialer(c.h).Dial(ctx, pAddr.ID.String(), opts...)
 		}
 	}
-	return nil, errors.New("Invalid address received for peer")
+	return nil, errors.New("invalid address received for peer")
 }
 
 func NewStaticClientService(c config.Config) ClientSvc {

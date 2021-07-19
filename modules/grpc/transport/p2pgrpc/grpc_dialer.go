@@ -3,7 +3,6 @@ package p2pgrpc
 import (
 	"context"
 	"net"
-	"time"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -26,15 +25,12 @@ type p2pDialer struct {
 }
 
 func (p *p2pDialer) getDialer(ctx context.Context) grpc.DialOption {
-	return grpc.WithDialer(func(peerIdStr string, timeout time.Duration) (net.Conn, error) {
-		subCtx, subCtxCancel := context.WithTimeout(ctx, timeout)
-		defer subCtxCancel()
-
-		pid, err := peer.IDB58Decode(peerIdStr)
+	return grpc.WithContextDialer(func(ctx context.Context, peerIdStr string) (net.Conn, error) {
+		pid, err := peer.Decode(peerIdStr)
 		if err != nil {
 			return nil, err
 		}
-		return gostream.Dial(subCtx, p, pid, Protocol)
+		return gostream.Dial(ctx, p, pid, Protocol)
 	})
 }
 

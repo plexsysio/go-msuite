@@ -9,7 +9,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	logger.SetLogLevel("*", "Error")
+	_ = logger.SetLogLevel("*", "Error")
 	os.Exit(m.Run())
 }
 
