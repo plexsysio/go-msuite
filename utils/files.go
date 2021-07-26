@@ -49,7 +49,7 @@ func ReadFromFile(w io.Writer, f string) error {
 
 func MkdirIfNotExists(path string) error {
 	if !Exists(path) {
-		err := os.MkdirAll(path, 0600)
+		err := os.MkdirAll(path, 0775)
 		if err != nil {
 			return err
 		}
