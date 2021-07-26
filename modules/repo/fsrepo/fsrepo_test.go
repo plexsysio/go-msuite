@@ -54,24 +54,24 @@ func TestOpen(t *testing.T) {
 	if r2 != r {
 		t.Fatal("Newly opened repo doesnt match already open one")
 	}
-	if fsrepo.GetRefCnt() != 2 {
-		t.Fatal("RefCnt is incorrect", fsrepo.GetRefCnt())
+	if fsrepo.Opener.RefCnt != 2 {
+		t.Fatal("RefCnt is incorrect", fsrepo.Opener.RefCnt)
 	}
 	err = r.Close()
 	if err != nil {
 		t.Fatal("Failed closing repo", err)
 	}
-	if fsrepo.GetRefCnt() != 1 {
+	if fsrepo.Opener.RefCnt != 1 {
 		t.Fatal("RefCnt is incorrect", fsrepo.Opener)
 	}
 	err = r2.Close()
 	if err != nil {
 		t.Fatal("Failed closing repo", err)
 	}
-	if fsrepo.GetRefCnt() != 0 {
+	if fsrepo.Opener.RefCnt != 0 {
 		t.Fatal("RefCnt is incorrect", fsrepo.Opener)
 	}
-	if fsrepo.GetActive() != nil {
+	if fsrepo.Opener.Active != nil {
 		t.Fatal("Close did not clear internal stores")
 	}
 }
