@@ -8,20 +8,11 @@ import (
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
-	"github.com/plexsysio/go-msuite/utils"
+	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
-	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"time"
 )
-
-var Module = func(c config.Config) fx.Option {
-	return fx.Options(
-		utils.MaybeProvide(NewP2PClientService, c.IsSet("UseP2P")),
-		utils.MaybeProvide(NewStaticClientService, !c.IsSet("UseP2P") && c.IsSet("UseStaticDiscovery")),
-	)
-}
 
 var log = logger.Logger("grpc/client")
 

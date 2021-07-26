@@ -1,11 +1,13 @@
-package msuite
+package msuite_test
 
 import (
 	"context"
-	logger "github.com/ipfs/go-log/v2"
 	"os"
 	"testing"
 	"time"
+
+	logger "github.com/ipfs/go-log/v2"
+	"github.com/plexsysio/go-msuite"
 )
 
 func TestMain(m *testing.M) {
@@ -15,7 +17,7 @@ func TestMain(m *testing.M) {
 
 func TestBasicNew(t *testing.T) {
 	defer os.RemoveAll("tmp")
-	app, err := New(WithRepositoryRoot("tmp"))
+	app, err := msuite.New(msuite.WithRepositoryRoot("tmp"))
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
@@ -67,9 +69,9 @@ func TestBasicNew(t *testing.T) {
 
 func TestTM(t *testing.T) {
 	defer os.RemoveAll("tmp1")
-	app, err := New(
-		WithRepositoryRoot("tmp1"),
-		WithTaskManager(5),
+	app, err := msuite.New(
+		msuite.WithRepositoryRoot("tmp1"),
+		msuite.WithTaskManager(5),
 	)
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
@@ -122,9 +124,9 @@ func TestTM(t *testing.T) {
 
 func TestNode(t *testing.T) {
 	defer os.RemoveAll("tmp2")
-	app, err := New(
-		WithRepositoryRoot("tmp2"),
-		WithP2PPort(10000),
+	app, err := msuite.New(
+		msuite.WithRepositoryRoot("tmp2"),
+		msuite.WithP2PPort(10000),
 	)
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
@@ -183,9 +185,9 @@ func TestNode(t *testing.T) {
 
 func TestHTTP(t *testing.T) {
 	defer os.RemoveAll("tmp3")
-	app, err := New(
-		WithRepositoryRoot("tmp3"),
-		WithHTTP(10000),
+	app, err := msuite.New(
+		msuite.WithRepositoryRoot("tmp3"),
+		msuite.WithHTTP(10000),
 	)
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
@@ -239,14 +241,14 @@ func TestHTTP(t *testing.T) {
 
 func TestGRPCLockerAuth(t *testing.T) {
 	defer os.RemoveAll("tmp4")
-	app, err := New(
-		WithRepositoryRoot("tmp4"),
-		WithP2PPort(10000),
-		WithGRPC(),
-		WithGRPCTCPListener(10001),
-		WithLocker("inmem", nil),
-		WithJWT("dummysecret"),
-		WithServiceACL(map[string]string{
+	app, err := msuite.New(
+		msuite.WithRepositoryRoot("tmp4"),
+		msuite.WithP2PPort(10000),
+		msuite.WithGRPC(),
+		msuite.WithGRPCTCPListener(10001),
+		msuite.WithLocker("inmem", nil),
+		msuite.WithJWT("dummysecret"),
+		msuite.WithServiceACL(map[string]string{
 			"dummyresource": "admin",
 		}),
 	)

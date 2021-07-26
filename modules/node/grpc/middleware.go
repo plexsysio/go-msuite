@@ -1,8 +1,14 @@
-package mware
+package grpcsvc
 
 import (
 	"context"
+	"errors"
+
+	"github.com/grpc-ecosystem/go-grpc-prometheus"
+	gtrace "github.com/moxiaomomo/grpc-jaeger"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/go-msuite/modules/auth"
+	"github.com/plexsysio/go-msuite/modules/config"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -101,4 +107,67 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 		}
 	}
 	return status.Error(codes.PermissionDenied, "no permission to access this RPC")
+}
+
+var Prometheus = fx.Options(
+	fx.Provide(PromOptions),
+	fx.Invoke(PromRegister),
+)
+
+type PrometheusOpts struct {
+	fx.Out
+
+	UOut grpc.UnaryServerInterceptor  `group:"unary_opts"`
+	SOut grpc.StreamServerInterceptor `group:"stream_opts"`
+}
+
+func PromOptions() (params PrometheusOpts, err error) {
+	params.SOut = grpc_prometheus.StreamServerInterceptor
+	params.UOut = grpc_prometheus.UnaryServerInterceptor
+	return
+}
+
+func PromRegister(c config.Config, s *grpc.Server) {
+	grpc_prometheus.Register(s)
+	if c.IsSet("UsePrometheusLatency") {
+		grpc_prometheus.EnableHandlingTimeHistogram()
+	}
+}
+
+var TracerModule = fx.Options(
+	fx.Provide(JaegerTracerOptions),
+)
+
+type TracerOpts struct {
+	fx.Out
+
+	Tracer opentracing.Tracer
+	UOut   grpc.UnaryServerInterceptor `group:"unary_opts"`
+}
+
+func JaegerTracerOptions(
+	lc fx.Lifecycle,
+	conf config.Config,
+) (params TracerOpts, retErr error) {
+	svcName := "default"
+	conf.Get("TracingName", &svcName)
+	var tHost string
+	ok := conf.Get("TracingHost", &tHost)
+	if !ok {
+		retErr = errors.New("Tracing host not specified")
+		return
+	}
+	tracer, closer, err := gtrace.NewJaegerTracer(svcName, tHost)
+	if err != nil {
+		retErr = err
+		return
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			return closer.Close()
+		},
+	})
+	params.UOut = gtrace.ServerInterceptor(tracer)
+	params.Tracer = tracer
+	return
 }

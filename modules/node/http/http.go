@@ -4,12 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/diag/status"
-	"github.com/plexsysio/go-msuite/modules/http/middleware"
-	"github.com/plexsysio/go-msuite/utils"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	logger "github.com/ipfs/go-log/v2"
+	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/diag/status"
+	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
 	nhttp "net/http"
 )
@@ -20,9 +19,9 @@ var Module = func(c config.Config) fx.Option {
 	return fx.Options(
 		utils.MaybeProvide(NewHTTPServerMux, c.IsSet("UseHTTP")),
 		utils.MaybeProvide(NewGRPCGateway, c.IsSet("UseHTTP")),
-		utils.MaybeProvide(mware.JWT, c.IsSet("UseJWT")),
-		utils.MaybeProvide(mware.Tracing, c.IsSet("UseTracing")),
-		utils.MaybeOption(mware.Prometheus, c.IsSet("UsePrometheus")),
+		utils.MaybeProvide(JWT, c.IsSet("UseJWT")),
+		utils.MaybeProvide(Tracing, c.IsSet("UseTracing")),
+		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
 		utils.MaybeInvoke(NewHTTPServer, c.IsSet("UseHTTP")),
 	)
 }
@@ -32,7 +31,7 @@ type HTTPIn struct {
 
 	Mux    *nhttp.ServeMux
 	GRPC   *runtime.ServeMux
-	Mwares []mware.Middleware `group:"httpmiddleware"`
+	Mwares []Middleware `group:"httpmiddleware"`
 }
 
 func NewHTTPServerMux() *nhttp.ServeMux {

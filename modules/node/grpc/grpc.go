@@ -1,4 +1,4 @@
-package grpcServer
+package grpcsvc
 
 import (
 	"context"
@@ -7,10 +7,8 @@ import (
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
-	"github.com/plexsysio/go-msuite/modules/grpc/middleware"
-	"github.com/plexsysio/go-msuite/modules/grpc/transport/mux"
-	"github.com/plexsysio/go-msuite/modules/grpc/transport/p2pgrpc"
-	"github.com/plexsysio/go-msuite/modules/grpc/transport/tcp"
+	"github.com/plexsysio/go-msuite/modules/grpc/client"
+	"github.com/plexsysio/go-msuite/modules/grpc/mux"
 	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -41,7 +39,6 @@ func New(
 					if params.StManager != nil {
 						params.StManager.Report("GRPC server",
 							status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
-
 					}
 				}
 			}()
@@ -69,26 +66,35 @@ type ServerOptsParams struct {
 	StreamOpts []grpc.StreamServerInterceptor `group:"stream_opts"`
 }
 
-func OptsAggregator(params ServerOptsParams) []grpc.ServerOption {
-	log.Info("Server opts:", params)
-	outOpts := make([]grpc.ServerOption, 0)
-	outOpts = append(outOpts, grpc_middleware.WithUnaryServerChain(params.UnaryOpts...))
-	outOpts = append(outOpts, grpc_middleware.WithStreamServerChain(params.StreamOpts...))
+func OptsAggregator(params ServerOptsParams) (outOpts []grpc.ServerOption) {
+	outOpts = append(
+		outOpts,
+		grpc_middleware.WithUnaryServerChain(params.UnaryOpts...),
+		grpc_middleware.WithStreamServerChain(params.StreamOpts...),
+	)
 	return outOpts
 }
 
 func Transport(c config.Config) fx.Option {
 	return fx.Options(
-		utils.MaybeProvide(tcp.NewTCPListener, c.IsSet("UseTCP")),
-		utils.MaybeProvide(p2pgrpc.NewP2PListener, c.IsSet("UseP2P")),
+		fx.Provide(NewMuxedListener),
+		utils.MaybeProvide(NewTCPListener, c.IsSet("UseTCP")),
+		utils.MaybeProvide(NewP2PListener, c.IsSet("UseP2P")),
 	)
 }
 
 func Middleware(c config.Config) fx.Option {
 	return fx.Options(
-		utils.MaybeOption(mware.JwtAuth, c.IsSet("UseJWT")),
-		utils.MaybeOption(mware.TracerModule, c.IsSet("UseTracing")),
-		utils.MaybeOption(mware.Prometheus, c.IsSet("UsePrometheus")),
+		utils.MaybeOption(JwtAuth, c.IsSet("UseJWT")),
+		utils.MaybeOption(TracerModule, c.IsSet("UseTracing")),
+		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
+	)
+}
+
+func Client(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeProvide(grpcclient.NewP2PClientService, c.IsSet("UseP2P")),
+		utils.MaybeProvide(grpcclient.NewStaticClientService, !c.IsSet("UseP2P") && c.IsSet("UseStaticDiscovery")),
 	)
 }
 
@@ -96,7 +102,7 @@ var Module = func(c config.Config) fx.Option {
 	return fx.Options(
 		Transport(c),
 		Middleware(c),
-		grpcmux.Module,
+		Client(c),
 		fx.Provide(OptsAggregator),
 		fx.Provide(New),
 	)

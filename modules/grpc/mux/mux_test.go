@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plexsysio/go-msuite/modules/grpc/transport/mux"
+	"github.com/plexsysio/go-msuite/modules/grpc/mux"
 	"github.com/plexsysio/taskmanager"
 )
 
@@ -17,20 +17,18 @@ func TestMultipleListeners(t *testing.T) {
 	tcpListener3, _ := net.Listen("tcp", ":8082")
 	tm := taskmanager.New(4, 10, time.Second*10)
 
-	listeners := grpcmux.MuxIn{
-		Listeners: []grpcmux.MuxListener{
-			{
-				Listener: tcpListener1,
-				Tag:      "1",
-			},
-			{
-				Listener: tcpListener2,
-				Tag:      "2",
-			},
-			{
-				Listener: tcpListener3,
-				Tag:      "3",
-			},
+	listeners := []grpcmux.MuxListener{
+		{
+			Listener: tcpListener1,
+			Tag:      "1",
+		},
+		{
+			Listener: tcpListener2,
+			Tag:      "2",
+		},
+		{
+			Listener: tcpListener3,
+			Tag:      "3",
 		},
 	}
 

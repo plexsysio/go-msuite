@@ -2,6 +2,7 @@ package sharedStorage
 
 import (
 	"context"
+
 	"github.com/SWRMLabs/ants-db"
 	"github.com/SWRMLabs/ss-store"
 	"github.com/hsanjuan/ipfs-lite"
@@ -13,10 +14,7 @@ import (
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"go.uber.org/fx"
 )
-
-var Module = fx.Provide(NewSharedStoreProvider)
 
 type Callback interface {
 	Put(string)
