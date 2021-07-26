@@ -7,6 +7,8 @@ Modular microservices framework in golang
 
 Features are mostly similar to other popular frameworks. The only difference is `go-msuite` uses [libp2p](https://github.com/libp2p) underneath. Libp2p is a modular networking stack built for p2p applications. Having worked on it for more than a year now, I think it would add immense value not just to web3 but to traditional applications as well. This allows us to add more transports like websockets, quic etc.
 
+For the public API please go through the `core` package
+
 ## Features
 
 - Service lifecycle
@@ -17,8 +19,8 @@ Features are mostly similar to other popular frameworks. The only difference is 
    - Naturally, a bunch of middlewares are implemented to take care of auth, tracing, metrics etc. This is again common stuff which needs to be re-implemented each time an application is built.
 
 - Libp2p and IPFS
-   - A libp2p host is instantiated by `go-msuite`. It is possible to use existing keys or create new ones. Each application has access to [libp2p-host](https://github.com/libp2p/go-libp2p-core/host) and hence all the functionality that goes with it.
-   - [ipfs-lite](https://github.com/hsanjuan/ipfs-lite) is instantiated using the above libp2p host and the [repository storage](https://github.com/plexsysio/go-msuite/modules/repo). This can be used to share data between different services in the form of files.
+   - A libp2p host is instantiated by `go-msuite`. It is possible to use existing keys or create new ones. Each application has access to [libp2p-host](https://github.com/libp2p/go-libp2p-core/tree/master/host) and hence all the functionality that goes with it.
+   - [ipfs-lite](https://github.com/hsanjuan/ipfs-lite) is instantiated using the above libp2p host and the [repository storage](https://github.com/plexsysio/go-msuite/tree/master/modules/repo). This can be used to share data between different services in the form of files.
    - [Pubsub](https://github.com/libp2p/go-libp2p-pubsub) and [Discovery](https://github.com/libp2p/go-libp2p-discovery) are also supported using libp2p.
 
 - RPC Transport
@@ -53,7 +55,7 @@ Features are mostly similar to other popular frameworks. The only difference is 
 
 
 ```
-	import github.com/plexsysio/go-msuite/lib
+	import github.com/plexsysio/go-msuite
 
 	svc, err := msuite.New(
 		msuite.WithServiceName("HelloWorld"),

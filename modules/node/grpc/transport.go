@@ -30,8 +30,8 @@ type MuxIn struct {
 }
 
 func NewMuxedListener(
-	lc fx.Lifecycle,
 	ctx context.Context,
+	lc fx.Lifecycle,
 	in MuxIn,
 	tm *taskmanager.TaskManager,
 ) (*grpcmux.Mux, error) {
