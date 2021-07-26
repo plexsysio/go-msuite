@@ -20,37 +20,37 @@ import (
 
 type repoOpener struct {
 	mtx    sync.Mutex
-	active *fsRepo
-	refCnt int
+	Active *fsRepo
+	RefCnt int
 }
 
 func (r *repoOpener) Open(path string) (repo.Repo, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if r.active != nil {
-		r.refCnt++
-		return r.active, nil
+	if r.Active != nil {
+		r.RefCnt++
+		return r.Active, nil
 	}
 	rp, err := open(path)
 	if err != nil {
 		return nil, err
 	}
-	r.active = rp.(*fsRepo)
-	r.refCnt = 1
-	return r.active, nil
+	r.Active = rp.(*fsRepo)
+	r.RefCnt = 1
+	return r.Active, nil
 }
 
 func (r *repoOpener) Close() error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.refCnt--
-	if r.refCnt > 0 {
+	r.RefCnt--
+	if r.RefCnt > 0 {
 		return nil
 	}
-	ar := r.active
-	r.active = nil
+	ar := r.Active
+	r.Active = nil
 	return ar.close()
 }
 
