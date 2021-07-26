@@ -3,14 +3,12 @@ package events
 import (
 	"context"
 	"encoding/json"
+	"sync"
+
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-pubsub"
 	"github.com/plexsysio/taskmanager"
-	"go.uber.org/fx"
-	"sync"
 )
-
-var Module = fx.Provide(NewEventsSvc)
 
 var log = logger.Logger("events")
 

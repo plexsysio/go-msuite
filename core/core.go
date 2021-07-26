@@ -1,4 +1,5 @@
-package msuite
+// Package core defines the core abstractions provided by msuite library
+package core
 
 import (
 	"context"

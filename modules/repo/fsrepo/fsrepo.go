@@ -237,7 +237,12 @@ func open(path string) (repo.Repo, error) {
 	return r, nil
 }
 
-func CreateOrOpen(path string, c config.Config) (repo.Repo, error) {
+func CreateOrOpen(c config.Config) (repo.Repo, error) {
+	var path string
+	found := c.Get("RootPath", &path)
+	if !found {
+		return nil, errors.New("root path not specified")
+	}
 	if !IsInitialized(path) {
 		err := Init(path, c)
 		if err != nil {

@@ -19,4 +19,6 @@ type Config interface {
 
 	// IsSet is helper used to check boolean value is set
 	IsSet(key string) bool
+	// Exists checks whether key exists
+	Exists(key string) bool
 }

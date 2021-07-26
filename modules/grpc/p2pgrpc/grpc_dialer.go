@@ -6,9 +6,12 @@ import (
 
 	"github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/protocol"
 	"github.com/libp2p/go-libp2p-gostream"
 	"google.golang.org/grpc"
 )
+
+const Protocol protocol.ID = "/grpc/1.0.0"
 
 type P2PGrpcDialer interface {
 	Dial(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error)

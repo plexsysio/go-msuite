@@ -33,6 +33,11 @@ func (j *JsonConfig) IsSet(key string) bool {
 	return ok && val.(bool)
 }
 
+func (j *JsonConfig) Exists(key string) bool {
+	_, ok := (*j)[key]
+	return ok
+}
+
 func DefaultConfig() *JsonConfig {
 	var conf = make(JsonConfig)
 	return &conf

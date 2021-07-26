@@ -2,12 +2,13 @@ package ipfs
 
 import (
 	"context"
+	"time"
+
 	logger "github.com/ipfs/go-log/v2"
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p/p2p/discovery"
-	"time"
 )
 
 var log = logger.Logger("mdnsdiscovery")

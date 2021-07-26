@@ -2,13 +2,11 @@ package status
 
 import (
 	"encoding/json"
-	"github.com/plexsysio/taskmanager"
-	"go.uber.org/fx"
 	"net/http"
 	"sync"
-)
 
-var Module = fx.Provide(New)
+	"github.com/plexsysio/taskmanager"
+)
 
 type Manager interface {
 	Report(string, Status)

@@ -1,31 +1,27 @@
-package msuite
+package node
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"github.com/SWRMLabs/ss-store"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	"github.com/mitchellh/go-homedir"
 	"github.com/plexsysio/dLocker"
+	"github.com/plexsysio/go-msuite/core"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"github.com/plexsysio/go-msuite/modules/events"
-	"github.com/plexsysio/go-msuite/modules/grpc"
 	"github.com/plexsysio/go-msuite/modules/grpc/client"
-	mhttp "github.com/plexsysio/go-msuite/modules/http"
-	"github.com/plexsysio/go-msuite/modules/ipfs"
-	"github.com/plexsysio/go-msuite/modules/locker"
+	"github.com/plexsysio/go-msuite/modules/node/grpc"
+	mhttp "github.com/plexsysio/go-msuite/modules/node/http"
+	"github.com/plexsysio/go-msuite/modules/node/ipfs"
+	"github.com/plexsysio/go-msuite/modules/node/locker"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
@@ -34,176 +30,39 @@ import (
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"net/http"
-	"path/filepath"
 	"time"
 )
 
 type FxLog struct{}
 
-var log = logger.Logger("Boot")
+var log = logger.Logger("node")
 
 func (f *FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
 }
 
-type BuildCfg struct {
-	cfg     config.Config
-	root    string
-	svcName string
-	tmCount int
+var authModule = func(c config.Config) fx.Option {
+	return fx.Options(
+		utils.MaybeProvide(auth.NewJWTManager, c.IsSet("UseJWT")),
+		utils.MaybeProvide(auth.NewAclManager, c.IsSet("UseACL")),
+	)
 }
 
-type Option func(c *BuildCfg)
-
-func WithGRPC() Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseGRPC", true)
-	}
-}
-
-func WithGRPCTCPListener(port int) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseTCP", true)
-		c.cfg.Set("TCPPort", port)
-	}
-}
-
-func WithJWT(secret string) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseJWT", true)
-		c.cfg.Set("JWTSecret", secret)
-	}
-}
-
-func WithTracing(name, host string) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseTracing", true)
-		c.cfg.Set("TracingName", name)
-		c.cfg.Set("TracingHost", host)
-	}
-}
-
-func WithHTTP(port int) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseHTTP", true)
-		c.cfg.Set("HTTPPort", port)
-	}
-}
-
-func WithLocker(lkr string, cfg map[string]string) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseLocker", true)
-		c.cfg.Set("Locker", lkr)
-		for k, v := range cfg {
-			c.cfg.Set(k, v)
-		}
-	}
-}
-
-func WithP2PPrivateKey(key crypto.PrivKey) Option {
-	return func(c *BuildCfg) {
-		skbytes, err := key.Bytes()
-		if err != nil {
-			return
-		}
-		ident := map[string]interface{}{}
-		ident["PrivKey"] = base64.StdEncoding.EncodeToString(skbytes)
-
-		id, err := peer.IDFromPublicKey(key.GetPublic())
-		if err != nil {
-			return
-		}
-		ident["ID"] = id.Pretty()
-		c.cfg.Set("Identity", ident)
-	}
-}
-
-func WithP2PPort(port int) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseP2P", true)
-		c.cfg.Set("SwarmPort", port)
-	}
-}
-
-func WithRepositoryRoot(path string) Option {
-	return func(c *BuildCfg) {
-		c.root = path
-	}
-}
-
-func WithServiceName(name string) Option {
-	return func(c *BuildCfg) {
-		c.svcName = name
-	}
-}
-
-func WithServiceACL(acl map[string]string) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseACL", true)
-		c.cfg.Set("ACL", acl)
-	}
-}
-
-func WithTaskManager(count int) Option {
-	return func(c *BuildCfg) {
-		c.tmCount = count
-	}
-}
-
-func WithPrometheus(useLatency bool) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UsePrometheus", true)
-		if useLatency {
-			c.cfg.Set("UsePrometheusLatency", true)
-		}
-	}
-}
-
-func WithStaticDiscovery(svcAddrs map[string]string) Option {
-	return func(c *BuildCfg) {
-		c.cfg.Set("UseStaticDiscovery", true)
-		c.cfg.Set("StaticAddresses", svcAddrs)
-	}
-}
-
-func defaultOpts(c *BuildCfg) {
-	if len(c.svcName) == 0 {
-		c.svcName = "msuite"
-	}
-	if len(c.root) == 0 {
-		hd, err := homedir.Dir()
-		if err != nil {
-			panic("Unable to determine home directory")
-		}
-		c.root = filepath.Join(hd, ".msuite")
-	}
-	if c.cfg.IsSet("UseP2P") || c.cfg.IsSet("UseTCP") || c.cfg.IsSet("UseHTTP") {
-		c.tmCount += 1
-		if c.cfg.IsSet("UseTCP") {
-			c.tmCount += 1
-		}
-		if c.cfg.IsSet("UseP2P") {
-			c.tmCount += 2
-		}
-		if c.cfg.IsSet("UseHTTP") {
-			c.tmCount += 1
-		}
-	}
-}
-
-func New(opts ...Option) (Service, error) {
-	bCfg := &BuildCfg{
-		cfg: jsonConf.DefaultConfig(),
-	}
-	for _, opt := range opts {
-		opt(bCfg)
-	}
-	defaultOpts(bCfg)
-	r, err := fsrepo.CreateOrOpen(bCfg.root, bCfg.cfg)
+func New(bCfg config.Config) (core.Service, error) {
+	r, err := fsrepo.CreateOrOpen(bCfg)
 	if err != nil {
 		return nil, err
 	}
 	svc := &impl{}
+
+	var svcName string
+	nameFound := bCfg.Get("ServiceName", &svcName)
+	if !nameFound {
+		return nil, errors.New("service name not configured")
+	}
+
+	var tmCount int
+	found := bCfg.Get("TMWorkersMin", &tmCount)
 
 	app := fx.New(
 		fx.Logger(&FxLog{}),
@@ -213,38 +72,36 @@ func New(opts ...Option) (Service, error) {
 		fx.Provide(func(lc fx.Lifecycle) (repo.Repo, config.Config, ds.Batching) {
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					log.Debugf("Closing repo")
-					defer log.Debugf("Closed repo")
-					r.Close()
-					return nil
+					log.Debugf("closing repo")
+					defer log.Debugf("closed repo")
+					return r.Close()
 				},
 			})
 			return r, r.Config(), r.Datastore()
 		}),
 		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
-			tm := taskmanager.New(bCfg.tmCount, bCfg.tmCount*2, time.Second*15)
+			tm := taskmanager.New(tmCount, tmCount*3, time.Second*15)
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
-					log.Debugf("Stopping taskmanager")
-					defer log.Debugf("Stopped taskmanager")
+					log.Debugf("stopping taskmanager")
+					defer log.Debugf("stopped taskmanager")
 					tm.Stop()
 					return nil
 				},
 			})
 			return tm
-		}, bCfg.tmCount > 0),
+		}, found),
 		fx.Provide(func() string {
-			return bCfg.svcName
+			return svcName
 		}),
-		utils.MaybeOption(status.Module, bCfg.cfg.IsSet("UseHTTP")),
-		utils.MaybeOption(locker.Module, bCfg.cfg.IsSet("UseLocker")),
-		auth.Module(r.Config()),
-		utils.MaybeOption(ipfs.Module, bCfg.cfg.IsSet("UseP2P")),
-		utils.MaybeOption(grpcServer.Module(r.Config()), bCfg.cfg.IsSet("UseGRPC")),
+		utils.MaybeOption(fx.Provide(status.New), bCfg.IsSet("UseHTTP")),
+		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
+		authModule(r.Config()),
+		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),
+		utils.MaybeOption(grpcsvc.Module(r.Config()), bCfg.IsSet("UseGRPC")),
 		mhttp.Module(r.Config()),
-		grpcclient.Module(r.Config()),
-		utils.MaybeOption(events.Module, bCfg.cfg.IsSet("UseP2P")),
-		utils.MaybeOption(sharedStorage.Module, bCfg.cfg.IsSet("UseP2P")),
+		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
+		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
@@ -296,7 +153,7 @@ func (s *impl) TM() (*taskmanager.TaskManager, error) {
 	return s.Tm, nil
 }
 
-func (s *impl) Node() (Node, error) {
+func (s *impl) Node() (core.Node, error) {
 	if s.H == nil {
 		return nil, errors.New("Node not configured")
 	}
@@ -304,7 +161,7 @@ func (s *impl) Node() (Node, error) {
 }
 
 // P2P API
-func (s *impl) P2P() P2P {
+func (s *impl) P2P() core.P2P {
 	return s
 }
 
@@ -331,7 +188,7 @@ func (s *impl) IPFS() *ipfslite.Peer {
 }
 
 // Auth API
-func (s *impl) Auth() Auth {
+func (s *impl) Auth() core.Auth {
 	return s
 }
 
@@ -349,7 +206,7 @@ func (s *impl) ACL() (auth.ACL, error) {
 	return s.Am, nil
 }
 
-func (s *impl) GRPC() (GRPC, error) {
+func (s *impl) GRPC() (core.GRPC, error) {
 	if s.Rsrv == nil {
 		return nil, errors.New("GRPC service not configured")
 	}
@@ -367,7 +224,7 @@ func (s *impl) Client(ctx context.Context, name string) (*grpc.ClientConn, error
 	return s.Cs.Get(ctx, name)
 }
 
-func (s *impl) HTTP() (HTTP, error) {
+func (s *impl) HTTP() (core.HTTP, error) {
 	if s.Mx == nil {
 		return nil, errors.New("HTTP service not configured")
 	}
