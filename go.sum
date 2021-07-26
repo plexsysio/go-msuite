@@ -52,8 +52,6 @@ github.com/SWRMLabs/ss-ds-store v0.0.7 h1:N7GGXzHU5fG0y8anSNZc71V2Hv6mTpzdBgvKIo
 github.com/SWRMLabs/ss-ds-store v0.0.7/go.mod h1:26Eh8xETiHGOaEMfKr52JWLOJA3lOoNP9B8me6NwK+s=
 github.com/SWRMLabs/ss-store v0.0.4 h1:b4kvFatUMHw5Wgsn7eNmBAUaaw525CdZBmcrBJu/UYU=
 github.com/SWRMLabs/ss-store v0.0.4/go.mod h1:HUvvTPQ+Ot0eXUOdIMKiO3hUjUID427fC1gVihCcOU4=
-github.com/SWRMLabs/ss-taskmanager v0.0.3 h1:sWMNFvDWfkRi3+QrJ4MsaxfQ7LUX8g9ulpkiJIHfqEM=
-github.com/SWRMLabs/ss-taskmanager v0.0.3/go.mod h1:LDIOJ7YH6Px4DbBIDP1rRnWIhm7N3TmFLEpAJxNf/co=
 github.com/Stebalien/go-bitfield v0.0.1 h1:X3kbSSPUaJK60wV2hjOPZwmpljr6VGCqdq4cBLhbQBo=
 github.com/Stebalien/go-bitfield v0.0.1/go.mod h1:GNjFpasyUVkHMsfEOk8EFLJ9syQ6SI+XWrX9Wf2XH0s=
 github.com/aead/siphash v1.0.1/go.mod h1:Nywa3cDsYNNK3gaciGTWPwHt0wlpNV15vwmswBAUSII=
