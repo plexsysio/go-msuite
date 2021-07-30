@@ -1,6 +1,7 @@
 package jsonConf
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 
@@ -45,11 +46,12 @@ func DefaultConfig() *JsonConfig {
 
 func FromFile(f string) (*JsonConfig, error) {
 	j := &JsonConfig{}
-	err := utils.ReadFromFile(j, f)
+	writer := j.Writer()
+	err := utils.ReadFromFile(writer, f)
 	if err != nil {
 		return nil, err
 	}
-	return j, nil
+	return j, writer.Close()
 }
 
 func (j *JsonConfig) String() string {
@@ -60,24 +62,30 @@ func (j *JsonConfig) String() string {
 	return string(buf)
 }
 
-func (j *JsonConfig) Read(p []byte) (int, error) {
-	buf, err := json.MarshalIndent(j, "", "\t")
+func (j *JsonConfig) Reader() (io.Reader, error) {
+	buf, err := json.Marshal(j)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	copy(p, buf)
-	if len(buf) > len(p) {
-		return len(p), nil
-	}
-	return len(buf), io.EOF
+	return bytes.NewBuffer(buf), nil
 }
 
-func (j *JsonConfig) Write(p []byte) (int, error) {
-	err := json.Unmarshal(p, j)
+type writeCloser struct {
+	*bytes.Buffer
+	conf *JsonConfig
+}
+
+func (w *writeCloser) Close() error {
+	err := json.Unmarshal(w.Bytes(), w.conf)
 	if err != nil {
-		return 0, err
+		return err
 	}
-	return len(p), nil
+	w.Reset()
+	return nil
+}
+
+func (j *JsonConfig) Writer() io.WriteCloser {
+	return &writeCloser{Buffer: bytes.NewBuffer(nil), conf: j}
 }
 
 func (j *JsonConfig) Pretty() string {

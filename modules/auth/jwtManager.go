@@ -3,9 +3,10 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/dgrijalva/jwt-go"
 	"time"
+
+	"github.com/golang-jwt/jwt"
+	"github.com/plexsysio/go-msuite/modules/config"
 )
 
 // UserClaims is a custom JWT claims that contains some user's information

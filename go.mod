@@ -7,7 +7,7 @@ require (
 	github.com/SWRMLabs/ss-ds-store v0.0.7
 	github.com/SWRMLabs/ss-store v0.0.4
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0

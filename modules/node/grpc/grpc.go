@@ -36,21 +36,15 @@ func New(
 				err := rpcSrv.Serve(params.Listnr)
 				if err != nil {
 					log.Error("Failed to serve gRPC", err.Error())
-					if params.StManager != nil {
-						params.StManager.Report("GRPC server",
-							status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
-					}
+					params.StManager.Report("GRPC server",
+						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
 				}
 			}()
-			if params.StManager != nil {
-				params.StManager.Report("GRPC server", status.String("Running"))
-			}
+			params.StManager.Report("GRPC server", status.String("Running"))
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			if params.StManager != nil {
-				defer params.StManager.Report("GRPC server", status.String("Stopped"))
-			}
+			defer params.StManager.Report("GRPC server", status.String("Stopped"))
 			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-gostream"
@@ -40,26 +41,27 @@ func NewMuxedListener(
 		dMap := map[string]interface{}{
 			key: "Failed Err:" + err.Error(),
 		}
-		if in.StManager != nil {
-			in.StManager.Report("RPC Listeners", status.Map(dMap))
-		}
+		in.StManager.Report("RPC Listeners", status.Map(dMap))
 	})
+
 	stMp := make(map[string]interface{})
-	if in.StManager != nil {
-		for _, v := range in.Listeners {
-			stMp[v.Tag] = "Running"
-		}
-		in.StManager.Report("RPC Listeners", status.Map(stMp))
+	stMapMtx := sync.Mutex{}
+	stMapMtx.Lock()
+	for _, v := range in.Listeners {
+		stMp[v.Tag] = "Running"
 	}
+	stMapMtx.Unlock()
+	in.StManager.Report("RPC Listeners", status.Map(stMp))
+
 	lc.Append(fx.Hook{
 		OnStop: func(c context.Context) error {
 			defer func() {
-				if in.StManager != nil {
-					for k := range stMp {
-						stMp[k] = "Stopped"
-					}
-					in.StManager.Report("RPC Listeners", status.Map(stMp))
+				stMapMtx.Lock()
+				for k := range stMp {
+					stMp[k] = "Stopped"
 				}
+				stMapMtx.Unlock()
+				in.StManager.Report("RPC Listeners", status.Map(stMp))
 			}()
 			log.Info("Stopping Muxed listeners")
 			err := m.Close()
