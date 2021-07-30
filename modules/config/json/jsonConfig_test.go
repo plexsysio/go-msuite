@@ -152,7 +152,7 @@ func TestConfig(t *testing.T) {
 			conf.Get(key, &buf1)
 			newConf.Get(key, &buf2)
 
-			if bytes.Compare(buf1, buf2) != 0 {
+			if !bytes.Equal(buf1, buf2) {
 				t.Fatal("values mismatch for key:", key, "expected:", buf1, "found:", buf2)
 			}
 		}
@@ -203,7 +203,7 @@ func TestConfig(t *testing.T) {
 			conf.Get(key, &buf1)
 			newConf.Get(key, &buf2)
 
-			if bytes.Compare(buf1, buf2) != 0 {
+			if !bytes.Equal(buf1, buf2) {
 				t.Fatal("values mismatch for key:", key, "expected:", buf1, "found:", buf2)
 			}
 		}
