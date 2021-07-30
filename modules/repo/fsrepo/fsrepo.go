@@ -168,7 +168,11 @@ func Init(path string, c config.Config) error {
 		}
 	}
 	// Write the initial config provided
-	err := utils.WriteToFile(c, configPath(path))
+	confRdr, err := c.Reader()
+	if err != nil {
+		return wrapError("failed reading config", err)
+	}
+	err = utils.WriteToFile(confRdr, configPath(path))
 	if err != nil {
 		return wrapError("failed creating config", err)
 	}
@@ -262,7 +266,11 @@ func (f *fsRepo) SetConfig(c config.Config) error {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 	f.cfg = c
-	return utils.WriteToFile(c, configPath(f.path))
+	confRdr, err := c.Reader()
+	if err != nil {
+		return err
+	}
+	return utils.WriteToFile(confRdr, configPath(f.path))
 }
 
 func (f *fsRepo) Store() store.Store {

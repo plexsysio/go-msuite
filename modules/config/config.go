@@ -6,8 +6,8 @@ import (
 
 type Config interface {
 	// For reading and writing from files
-	io.Reader
-	io.Writer
+	Reader() (io.Reader, error)
+	Writer() io.WriteCloser
 
 	// Print helpers
 	String() string

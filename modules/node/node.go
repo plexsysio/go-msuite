@@ -94,7 +94,8 @@ func New(bCfg config.Config) (core.Service, error) {
 		fx.Provide(func() string {
 			return svcName
 		}),
-		utils.MaybeOption(fx.Provide(status.New), bCfg.IsSet("UseHTTP")),
+		utils.MaybeOption(fx.Provide(status.New), found),
+		utils.MaybeOption(fx.Invoke(status.RegisterHTTP), bCfg.IsSet("UseHTTP")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),

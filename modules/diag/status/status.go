@@ -43,13 +43,24 @@ type impl struct {
 
 func New(
 	tm *taskmanager.TaskManager,
-	mux *http.ServeMux,
 ) Manager {
 	m := &impl{
 		tm: tm,
 	}
-	mux.HandleFunc("/v1/status", m.httpHandler)
 	return m
+}
+
+func RegisterHTTP(m Manager, mux *http.ServeMux) {
+	mux.HandleFunc("/v1/status", func(w http.ResponseWriter, r *http.Request) {
+		buf, err := json.MarshalIndent(m.Status(), "", "\t")
+		if err != nil {
+			http.Error(w, "Failed to get status Err:"+err.Error(),
+				http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(buf)
+	})
 }
 
 func (m *impl) Report(key string, msg Status) {
@@ -72,15 +83,4 @@ func (m *impl) Status() map[string]interface{} {
 	})
 	retStatus["Task Manager"] = m.tm.TaskStatus()
 	return retStatus
-}
-
-func (m *impl) httpHandler(w http.ResponseWriter, r *http.Request) {
-	buf, err := json.MarshalIndent(m.Status(), "", "\t")
-	if err != nil {
-		http.Error(w, "Failed to get status Err:"+err.Error(),
-			http.StatusInternalServerError)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write(buf)
 }
