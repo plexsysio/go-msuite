@@ -266,13 +266,13 @@ func (f *fsRepo) close() error {
 	if f.kvStore != nil {
 		e := f.kvStore.Close()
 		if e != nil {
-			multierror.Append(err, e)
+			err = multierror.Append(err, e)
 		}
 	}
 	if f.rootDS != nil {
 		e := f.rootDS.Close()
 		if e != nil {
-			multierror.Append(err, e)
+			err = multierror.Append(err, e)
 		}
 	}
 	f.kvStore = nil
