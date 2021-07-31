@@ -2,17 +2,114 @@ package msuite_test
 
 import (
 	"context"
+	"encoding/base64"
 	"os"
 	"testing"
 	"time"
 
 	logger "github.com/ipfs/go-log/v2"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/plexsysio/go-msuite"
+	"github.com/plexsysio/go-msuite/core"
 )
 
 func TestMain(m *testing.M) {
 	_ = logger.SetLogLevel("*", "Error")
 	os.Exit(m.Run())
+}
+
+func MustRepo(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	r := m.Repo()
+	if r == nil && !exists {
+		t.Fatal("Expected error accessing repo")
+	}
+}
+
+func MustNode(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Node()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing Node")
+	}
+}
+
+func MustGRPC(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.GRPC()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing GRPC")
+	}
+}
+
+func MustHTTP(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.HTTP()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing HTTP")
+	}
+}
+
+func MustTM(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.TM()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing TM")
+	}
+}
+
+func MustLocker(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Locker()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing Locker")
+	}
+}
+
+func MustEvents(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Events()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing Events")
+	}
+}
+
+func MustJWT(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Auth().JWT()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing JWT")
+	}
+}
+
+func MustACL(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Auth().ACL()
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing ACL")
+	}
+}
+
+func MustSharedStorage(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	st, err := m.SharedStorage("test", nil)
+	if err == nil && !exists {
+		t.Fatal("Expected error accessing SharedStorage")
+	}
+	if st != nil {
+		st.Close()
+	}
 }
 
 func TestBasicNew(t *testing.T) {
@@ -21,46 +118,23 @@ func TestBasicNew(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
-	r := app.Repo()
-	if r == nil {
-		t.Fatal("Failed accessing repo")
-	}
-	_, err = app.Node()
-	if err == nil {
-		t.Fatal("Expected error accessing Node")
-	}
-	_, err = app.GRPC()
-	if err == nil {
-		t.Fatal("Expected error accessing GRPC")
-	}
-	_, err = app.TM()
-	if err == nil {
-		t.Fatal("Expected error accessing TM")
-	}
-	_, err = app.HTTP()
-	if err == nil {
-		t.Fatal("Expected error accessing HTTP")
-	}
-	_, err = app.Locker()
-	if err == nil {
-		t.Fatal("Expected error accessing Locker")
-	}
-	_, err = app.Events()
-	if err == nil {
-		t.Fatal("Expected error accessing Events")
-	}
-	_, err = app.Auth().JWT()
-	if err == nil {
-		t.Fatal("Expected error accessing JWT")
-	}
-	_, err = app.Auth().ACL()
-	if err == nil {
-		t.Fatal("Expected error accessing ACL")
-	}
+
+	MustRepo(t, app, true)
+	MustNode(t, app, false)
+	MustGRPC(t, app, false)
+	MustHTTP(t, app, false)
+	MustTM(t, app, false)
+	MustLocker(t, app, false)
+	MustEvents(t, app, false)
+	MustJWT(t, app, false)
+	MustACL(t, app, false)
+	MustSharedStorage(t, app, false)
+
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
+	time.Sleep(time.Millisecond * 100)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -76,46 +150,23 @@ func TestTM(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
-	r := app.Repo()
-	if r == nil {
-		t.Fatal("Failed accessing repo")
-	}
-	_, err = app.TM()
-	if err != nil {
-		t.Fatal("Failed accessing TM", err.Error())
-	}
-	_, err = app.Node()
-	if err == nil {
-		t.Fatal("Expected error accessing Node")
-	}
-	_, err = app.GRPC()
-	if err == nil {
-		t.Fatal("Expected error accessing GRPC")
-	}
-	_, err = app.HTTP()
-	if err == nil {
-		t.Fatal("Expected error accessing HTTP")
-	}
-	_, err = app.Locker()
-	if err == nil {
-		t.Fatal("Expected error accessing Locker")
-	}
-	_, err = app.Events()
-	if err == nil {
-		t.Fatal("Expected error accessing Events")
-	}
-	_, err = app.Auth().JWT()
-	if err == nil {
-		t.Fatal("Expected error accessing JWT")
-	}
-	_, err = app.Auth().ACL()
-	if err == nil {
-		t.Fatal("Expected error accessing ACL")
-	}
+
+	MustRepo(t, app, true)
+	MustTM(t, app, true)
+	MustNode(t, app, false)
+	MustGRPC(t, app, false)
+	MustHTTP(t, app, false)
+	MustLocker(t, app, false)
+	MustEvents(t, app, false)
+	MustJWT(t, app, false)
+	MustACL(t, app, false)
+	MustSharedStorage(t, app, false)
+
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
+	time.Sleep(time.Millisecond * 100)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -131,52 +182,23 @@ func TestNode(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
-	r := app.Repo()
-	if r == nil {
-		t.Fatal("Failed accessing repo")
-	}
-	_, err = app.TM()
-	if err != nil {
-		t.Fatal("Failed accessing TM", err.Error())
-	}
-	_, err = app.Node()
-	if err != nil {
-		t.Fatal("Failed accessing Node", err.Error())
-	}
-	_, err = app.GRPC()
-	if err == nil {
-		t.Fatal("Expected error accessing GRPC")
-	}
-	_, err = app.HTTP()
-	if err == nil {
-		t.Fatal("Expected error accessing HTTP")
-	}
-	_, err = app.Locker()
-	if err == nil {
-		t.Fatal("Expected error accessing Locker")
-	}
-	_, err = app.Events()
-	if err != nil {
-		t.Fatal("Failed accessing Events", err.Error())
-	}
-	_, err = app.Auth().JWT()
-	if err == nil {
-		t.Fatal("Expected error accessing JWT")
-	}
-	_, err = app.Auth().ACL()
-	if err == nil {
-		t.Fatal("Expected error accessing ACL")
-	}
+
+	MustRepo(t, app, true)
+	MustTM(t, app, true)
+	MustNode(t, app, true)
+	MustEvents(t, app, true)
+	MustSharedStorage(t, app, true)
+	MustGRPC(t, app, false)
+	MustHTTP(t, app, false)
+	MustLocker(t, app, false)
+	MustJWT(t, app, false)
+	MustACL(t, app, false)
+
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
-	st, err := app.SharedStorage("test", nil)
-	if err != nil {
-		t.Fatal("Failed creating shared store", err.Error())
-	}
-	st.Close()
-	<-time.After(time.Second * 3)
+	time.Sleep(time.Millisecond * 100)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -192,47 +214,23 @@ func TestHTTP(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
-	r := app.Repo()
-	if r == nil {
-		t.Fatal("Failed accessing repo")
-	}
-	_, err = app.Node()
-	if err == nil {
-		t.Fatal("Expected error accessing Node")
-	}
-	_, err = app.GRPC()
-	if err == nil {
-		t.Fatal("Expected error accessing GRPC")
-	}
-	_, err = app.TM()
-	if err != nil {
-		t.Fatal("Failed accessing TM", err.Error())
-	}
-	_, err = app.HTTP()
-	if err != nil {
-		t.Fatal("Failed accessing HTTP", err.Error())
-	}
-	_, err = app.Locker()
-	if err == nil {
-		t.Fatal("Expected error accessing Locker")
-	}
-	_, err = app.Events()
-	if err == nil {
-		t.Fatal("Expected error accessing Events")
-	}
-	_, err = app.Auth().JWT()
-	if err == nil {
-		t.Fatal("Expected error accessing JWT")
-	}
-	_, err = app.Auth().ACL()
-	if err == nil {
-		t.Fatal("Expected error accessing ACL")
-	}
+
+	MustRepo(t, app, true)
+	MustTM(t, app, true)
+	MustHTTP(t, app, true)
+	MustNode(t, app, false)
+	MustGRPC(t, app, false)
+	MustLocker(t, app, false)
+	MustEvents(t, app, false)
+	MustJWT(t, app, false)
+	MustACL(t, app, false)
+	MustSharedStorage(t, app, false)
+
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
-	<-time.After(time.Second * 3)
+	time.Sleep(time.Millisecond * 100)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -255,47 +253,97 @@ func TestGRPCLockerAuth(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
-	r := app.Repo()
-	if r == nil {
-		t.Fatal("Failed accessing repo")
-	}
-	_, err = app.TM()
-	if err != nil {
-		t.Fatal("Failed accessing TM", err.Error())
-	}
-	_, err = app.Node()
-	if err != nil {
-		t.Fatal("Failed accessing Node", err.Error())
-	}
-	_, err = app.GRPC()
-	if err != nil {
-		t.Fatal("Failed accessing GRPC", err.Error())
-	}
-	_, err = app.HTTP()
-	if err == nil {
-		t.Fatal("Expected error accessing HTTP")
-	}
-	_, err = app.Locker()
-	if err != nil {
-		t.Fatal("Failed accessing Locker", err.Error())
-	}
-	_, err = app.Events()
-	if err != nil {
-		t.Fatal("Failed accessing Events", err.Error())
-	}
-	_, err = app.Auth().JWT()
-	if err != nil {
-		t.Fatal("Failed accessing JWT", err.Error())
-	}
-	_, err = app.Auth().ACL()
-	if err != nil {
-		t.Fatal("Failed accessing ACL", err.Error())
-	}
+
+	MustRepo(t, app, true)
+	MustTM(t, app, true)
+	MustNode(t, app, true)
+	MustGRPC(t, app, true)
+	MustLocker(t, app, true)
+	MustEvents(t, app, true)
+	MustJWT(t, app, true)
+	MustACL(t, app, true)
+	MustHTTP(t, app, false)
+	MustSharedStorage(t, app, true)
+
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
-	<-time.After(time.Second * 3)
+	time.Sleep(time.Millisecond * 100)
+	err = app.Stop(context.Background())
+	if err != nil {
+		t.Fatal("Failed stopping app", err.Error())
+	}
+}
+
+func TestPrivateKey(t *testing.T) {
+	defer os.RemoveAll("tmp")
+
+	sk, pk, err := crypto.GenerateKeyPair(crypto.Ed25519, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	skbytes, err := sk.Bytes()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	privKeyStr := base64.StdEncoding.EncodeToString(skbytes)
+
+	id, err := peer.IDFromPublicKey(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	app, err := msuite.New(
+		msuite.WithServiceName("test"),
+		msuite.WithP2PPrivateKey(sk),
+		msuite.WithRepositoryRoot("tmp"),
+		msuite.WithP2PPort(10000),
+	)
+	if err != nil {
+		t.Fatal("Failed creating new msuite instance", err)
+	}
+
+	MustRepo(t, app, true)
+	MustTM(t, app, true)
+	MustNode(t, app, true)
+	MustEvents(t, app, true)
+	MustSharedStorage(t, app, true)
+	MustGRPC(t, app, false)
+	MustLocker(t, app, false)
+	MustJWT(t, app, false)
+	MustACL(t, app, false)
+	MustHTTP(t, app, false)
+
+	identity := map[string]interface{}{}
+
+	found := app.Repo().Config().Get("Identity", &identity)
+	if !found {
+		t.Fatal("expected to find privkey in config")
+	}
+
+	privKeyCfg := identity["PrivKey"].(string)
+	if privKeyCfg != privKeyStr {
+		t.Fatal("expected privkey", privKeyStr, "found", privKeyCfg)
+	}
+
+	idCfg := identity["ID"].(string)
+	if idCfg != id.Pretty() {
+		t.Fatal("expected ID", id.Pretty(), "found", idCfg)
+	}
+
+	nd, _ := app.Node()
+	if nd.P2P().Host().ID().Pretty() != idCfg {
+		t.Fatal("incorrect id in P2P host expected", idCfg, nd.P2P().Host().ID().Pretty())
+	}
+
+	err = app.Start(context.Background())
+	if err != nil {
+		t.Fatal("Failed starting app", err.Error())
+	}
+	time.Sleep(time.Millisecond * 100)
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())

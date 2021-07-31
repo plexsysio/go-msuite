@@ -20,7 +20,7 @@ type MountInfo struct {
 
 type Datastore interface {
 	ds.Batching
-	Mounts() []MountInfo
+	Mounts() ([]MountInfo, error)
 }
 
 var DefaultMountInfo = map[string]interface{}{
@@ -107,7 +107,7 @@ func openDatastoreFromCfg(root string, c config.Config) (mDS ds.Batching, retErr
 			Datastore: newDs,
 		}
 		mnts = append(mnts, newMnt)
-		mntInfos[k] = newMnt
+		mntInfos[path] = newMnt
 	}
 	mDS = mount.New(mnts)
 	return &mountedDS{
@@ -127,7 +127,7 @@ func (m *mountedDS) Mounts() ([]MountInfo, error) {
 		if pds, ok := v.Datastore.(ds.PersistentDatastore); ok {
 			usg, err := pds.DiskUsage()
 			if err != nil {
-				return nil, wrapError("Failed getting disk usage", err)
+				return nil, err
 			}
 			mntInfos = append(mntInfos, MountInfo{
 				Path:   k,

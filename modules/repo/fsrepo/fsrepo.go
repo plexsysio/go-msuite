@@ -6,6 +6,7 @@ import (
 	"fmt"
 	ssStore "github.com/SWRMLabs/ss-ds-store"
 	"github.com/SWRMLabs/ss-store"
+	"github.com/hashicorp/go-multierror"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
@@ -75,38 +76,6 @@ func configPath(root string) string {
 	return filepath.Join(root, "config.json")
 }
 
-type fsRepoErr struct {
-	msg    string
-	secErr []error
-}
-
-func (f *fsRepoErr) Error() string {
-	if f.secErr != nil && len(f.secErr) > 0 {
-		errStr := ""
-		for i, v := range f.secErr {
-			errStr += fmt.Sprintf("[%d] %s\t", i, v.Error())
-		}
-		return fmt.Sprintf("fsRepo: %s SecErr: %s", f.msg, errStr)
-	}
-	return fmt.Sprintf("fsRepo: %s", f.msg)
-}
-
-func (f *fsRepoErr) Append(err error) {
-	f.secErr = append(f.secErr, err)
-}
-
-func (f *fsRepoErr) HasSecErr() bool {
-	return f.secErr != nil && len(f.secErr) > 0
-}
-
-func wrapError(msg string, secErr error) *fsRepoErr {
-	err := &fsRepoErr{msg: msg}
-	if secErr != nil {
-		err.Append(secErr)
-	}
-	return err
-}
-
 func initRepo(path string) error {
 	err := utils.MkdirIfNotExists(path)
 	if err != nil {
@@ -155,26 +124,26 @@ func Init(path string, c config.Config) error {
 	defer pkgLock.Unlock()
 	// Check if config is already present
 	if isInitialized(path) {
-		return wrapError("already initialized", nil)
+		return errors.New("already initialized")
 	}
 	if err := initRepo(path); err != nil {
-		return wrapError("failed creating directories", err)
+		return fmt.Errorf("failed creating directories %w", err)
 	}
 	// Create new IDs if not provided
 	id := map[string]interface{}{}
 	if !c.Get("Identity", &id) {
 		if err := initIdentity(c); err != nil {
-			return wrapError("failed creating identity", err)
+			return fmt.Errorf("failed creating identity %w", err)
 		}
 	}
 	// Write the initial config provided
 	confRdr, err := c.Reader()
 	if err != nil {
-		return wrapError("failed reading config", err)
+		return fmt.Errorf("failed reading config %w", err)
 	}
 	err = utils.WriteToFile(confRdr, configPath(path))
 	if err != nil {
-		return wrapError("failed creating config", err)
+		return fmt.Errorf("failed creating config %w", err)
 	}
 	return nil
 }
@@ -220,7 +189,7 @@ func Open(path string) (repo.Repo, error) {
 	defer pkgLock.Unlock()
 
 	if !isInitialized(path) {
-		return nil, wrapError("not initialized", nil)
+		return nil, errors.New("not initialized")
 	}
 	return opener.Open(path)
 }
@@ -230,13 +199,13 @@ func open(path string) (repo.Repo, error) {
 		path: path,
 	}
 	if err := r.openConfig(); err != nil {
-		return nil, wrapError("failed opening config", err)
+		return nil, fmt.Errorf("failed opening config %w", err)
 	}
 	if err := r.openDatastore(); err != nil {
-		return nil, wrapError("failed opening datastore", err)
+		return nil, fmt.Errorf("failed opening datastore %w", err)
 	}
 	if err := r.openStore(); err != nil {
-		return nil, wrapError("failed opening KV store", err)
+		return nil, fmt.Errorf("failed opening KV store %w", err)
 	}
 	return r, nil
 }
@@ -293,23 +262,20 @@ func (f *fsRepo) Close() error {
 }
 
 func (f *fsRepo) close() error {
-	err := wrapError("failed closing repo", nil)
+	var err *multierror.Error
 	if f.kvStore != nil {
 		e := f.kvStore.Close()
 		if e != nil {
-			err.Append(e)
+			err = multierror.Append(err, e)
 		}
 	}
 	if f.rootDS != nil {
 		e := f.rootDS.Close()
 		if e != nil {
-			err.Append(e)
+			err = multierror.Append(err, e)
 		}
-	}
-	if err.HasSecErr() {
-		return err
 	}
 	f.kvStore = nil
 	f.rootDS = nil
-	return nil
+	return err.ErrorOrNil()
 }
