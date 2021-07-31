@@ -317,25 +317,19 @@ func TestPrivateKey(t *testing.T) {
 	MustACL(t, app, false)
 	MustHTTP(t, app, false)
 
-	var (
-		privKeyCfg string
-		idCfg      string
-	)
+	identity := map[string]interface{}{}
 
-	found := app.Repo().Config().Get("PrivKey", &privKeyCfg)
+	found := app.Repo().Config().Get("Identity", &identity)
 	if !found {
 		t.Fatal("expected to find privkey in config")
 	}
 
+	privKeyCfg := identity["PrivKey"].(string)
 	if privKeyCfg != privKeyStr {
 		t.Fatal("expected privkey", privKeyStr, "found", privKeyCfg)
 	}
 
-	found = app.Repo().Config().Get("ID", &idCfg)
-	if !found {
-		t.Fatal("expected to find ID in config")
-	}
-
+	idCfg := identity["ID"].(string)
 	if idCfg != id.Pretty() {
 		t.Fatal("expected ID", id.Pretty(), "found", idCfg)
 	}
