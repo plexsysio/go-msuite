@@ -94,8 +94,7 @@ func New(bCfg config.Config) (core.Service, error) {
 		fx.Provide(func() string {
 			return svcName
 		}),
-		utils.MaybeOption(fx.Provide(status.New), found),
-		utils.MaybeOption(fx.Invoke(status.RegisterHTTP), bCfg.IsSet("UseHTTP")),
+		utils.MaybeProvide(status.New, found),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),
@@ -103,6 +102,7 @@ func New(bCfg config.Config) (core.Service, error) {
 		mhttp.Module(r.Config()),
 		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
 		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
+		utils.MaybeInvoke(status.RegisterHTTP, bCfg.IsSet("UseHTTP")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
