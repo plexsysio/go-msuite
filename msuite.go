@@ -136,15 +136,23 @@ func WithStaticDiscovery(svcAddrs map[string]string) Option {
 }
 
 func WithService(name string, initFn func(core.Service) error) Option {
-	return func(cfg *BuildCfg) {
-		cfg.services[name] = initFn
+	return func(c *BuildCfg) {
+		c.services[name] = initFn
 	}
 }
 
 func defaultOpts(c *BuildCfg) {
 	if !c.startupCfg.Exists("Services") {
-		c.startupCfg.Set("ServiceName", []string{"msuite"})
+		c.startupCfg.Set("Services", []string{"msuite"})
 	}
+
+	var services []string
+	_ = c.startupCfg.Get("Services", &services)
+	for k, _ := range c.services {
+		services = append(services, k)
+	}
+	c.startupCfg.Set("Services", services)
+
 	if !c.startupCfg.Exists("RootPath") {
 		hd, err := homedir.Dir()
 		if err != nil {
