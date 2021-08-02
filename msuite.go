@@ -148,7 +148,7 @@ func defaultOpts(c *BuildCfg) {
 
 	var services []string
 	_ = c.startupCfg.Get("Services", &services)
-	for k, _ := range c.services {
+	for k := range c.services {
 		services = append(services, k)
 	}
 	c.startupCfg.Set("Services", services)
@@ -205,7 +205,8 @@ func New(opts ...Option) (core.Service, error) {
 	for _, initFn := range bCfg.services {
 		err = initFn(svc)
 		if err != nil {
-			ctxd, _ := context.WithTimeout(context.Background(), time.Second*5)
+			ctxd, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
 			_ = svc.Stop(ctxd)
 			return nil, err
 		}
