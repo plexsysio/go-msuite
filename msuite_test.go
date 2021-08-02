@@ -145,7 +145,7 @@ func TestTM(t *testing.T) {
 	defer os.RemoveAll("tmp1")
 	app, err := msuite.New(
 		msuite.WithRepositoryRoot("tmp1"),
-		msuite.WithTaskManager(5),
+		msuite.WithTaskManager(5, 100),
 	)
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)

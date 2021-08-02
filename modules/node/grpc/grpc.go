@@ -88,6 +88,7 @@ func Middleware(c config.Config) fx.Option {
 func Client(c config.Config) fx.Option {
 	return fx.Options(
 		utils.MaybeProvide(grpcclient.NewP2PClientService, c.IsSet("UseP2P")),
+		utils.MaybeInvoke(grpcclient.NewP2PClientAdvertiser, c.IsSet("UseP2P")),
 		utils.MaybeProvide(grpcclient.NewStaticClientService, !c.IsSet("UseP2P") && c.IsSet("UseStaticDiscovery")),
 	)
 }

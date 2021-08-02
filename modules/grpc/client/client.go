@@ -21,27 +21,37 @@ type ClientSvc interface {
 }
 
 func NewP2PClientService(
-	svcName string,
 	d discovery.Discovery,
 	h host.Host,
-	tm *taskmanager.TaskManager,
 ) (ClientSvc, error) {
 	csvc := &clientImpl{
-		ds:  d,
-		h:   h,
-		svc: svcName,
-	}
-	// Start discovery provider
-	dp := &discoveryProvider{impl: csvc}
-	_, err := tm.Go(dp)
-	if err != nil {
-		return nil, err
+		ds: d,
+		h:  h,
 	}
 	return csvc, nil
 }
 
+func NewP2PClientAdvertiser(
+	cfg config.Config,
+	d discovery.Discovery,
+	tm *taskmanager.TaskManager,
+) error {
+	var services []string
+	found := cfg.Get("Services", &services)
+	if found {
+		// Start discovery provider
+		dp := &discoveryProvider{ds: d, services: services}
+		_, err := tm.Go(dp)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type discoveryProvider struct {
-	impl *clientImpl
+	services []string
+	ds       discovery.Discovery
 }
 
 func (d *discoveryProvider) Name() string {
@@ -50,10 +60,24 @@ func (d *discoveryProvider) Name() string {
 
 func (d *discoveryProvider) Execute(ctx context.Context) error {
 	for {
-		log.Infof("Advertising service: %s", d.impl.svc)
-		ttl, err := d.impl.ds.Advertise(ctx, d.impl.svc, discovery.TTL(time.Minute*15))
+		var (
+			startTTL time.Duration
+			err      error
+		)
+		for i, svc := range d.services {
+			log.Infof("Advertising service: %s", svc)
+			ttl, e := d.ds.Advertise(ctx, svc, discovery.TTL(time.Minute*15))
+			if e != nil {
+				err = fmt.Errorf("error advertising %s: %w", svc, e)
+				break
+			}
+			// Use TTL of first advertisement for wait in the next part
+			if i == 0 {
+				startTTL = ttl
+			}
+		}
 		if err != nil {
-			log.Debugf("Error advertising %s: %s", d.impl.svc, err.Error())
+			log.Debug(err.Error())
 			select {
 			case <-time.After(time.Minute * 2):
 				continue
@@ -61,7 +85,7 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 				return nil
 			}
 		}
-		wait := 7 * ttl / 8
+		wait := 7 * startTTL / 8
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():
@@ -72,9 +96,8 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 }
 
 type clientImpl struct {
-	ds  discovery.Discovery
-	h   host.Host
-	svc string
+	ds discovery.Discovery
+	h  host.Host
 }
 
 func (c *clientImpl) Get(
