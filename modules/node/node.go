@@ -55,14 +55,8 @@ func New(bCfg config.Config) (core.Service, error) {
 	}
 	svc := &impl{}
 
-	var svcName string
-	nameFound := bCfg.Get("ServiceName", &svcName)
-	if !nameFound {
-		return nil, errors.New("service name not configured")
-	}
-
-	var tmCount int
-	found := bCfg.Get("TMWorkersMin", &tmCount)
+	var tmCfg map[string]int
+	found := bCfg.Get("TMWorkers", &tmCfg)
 
 	app := fx.New(
 		fx.Logger(&FxLog{}),
@@ -80,7 +74,7 @@ func New(bCfg config.Config) (core.Service, error) {
 			return r, r.Config(), r.Datastore()
 		}),
 		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
-			tm := taskmanager.New(tmCount, tmCount*3, time.Second*15)
+			tm := taskmanager.New(tmCfg["Min"], tmCfg["Max"], time.Second*15)
 			lc.Append(fx.Hook{
 				OnStop: func(c context.Context) error {
 					log.Debugf("stopping taskmanager")
@@ -91,9 +85,6 @@ func New(bCfg config.Config) (core.Service, error) {
 			})
 			return tm
 		}, found),
-		fx.Provide(func() string {
-			return svcName
-		}),
 		utils.MaybeProvide(status.New, found),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),

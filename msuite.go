@@ -1,6 +1,7 @@
 package msuite
 
 import (
+	"context"
 	"encoding/base64"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -10,57 +11,63 @@ import (
 	"github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/node"
 	"path/filepath"
+	"time"
 )
 
-type Option func(c config.Config)
+type BuildCfg struct {
+	startupCfg config.Config
+	services   map[string]func(core.Service) error
+}
+
+type Option func(c *BuildCfg)
 
 func WithGRPC() Option {
-	return func(c config.Config) {
-		c.Set("UseGRPC", true)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseGRPC", true)
 	}
 }
 
 func WithGRPCTCPListener(port int) Option {
-	return func(c config.Config) {
-		c.Set("UseTCP", true)
-		c.Set("TCPPort", port)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseTCP", true)
+		c.startupCfg.Set("TCPPort", port)
 	}
 }
 
 func WithJWT(secret string) Option {
-	return func(c config.Config) {
-		c.Set("UseJWT", true)
-		c.Set("JWTSecret", secret)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseJWT", true)
+		c.startupCfg.Set("JWTSecret", secret)
 	}
 }
 
 func WithTracing(name, host string) Option {
-	return func(c config.Config) {
-		c.Set("UseTracing", true)
-		c.Set("TracingName", name)
-		c.Set("TracingHost", host)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseTracing", true)
+		c.startupCfg.Set("TracingName", name)
+		c.startupCfg.Set("TracingHost", host)
 	}
 }
 
 func WithHTTP(port int) Option {
-	return func(c config.Config) {
-		c.Set("UseHTTP", true)
-		c.Set("HTTPPort", port)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseHTTP", true)
+		c.startupCfg.Set("HTTPPort", port)
 	}
 }
 
 func WithLocker(lkr string, cfg map[string]string) Option {
-	return func(c config.Config) {
-		c.Set("UseLocker", true)
-		c.Set("Locker", lkr)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseLocker", true)
+		c.startupCfg.Set("Locker", lkr)
 		for k, v := range cfg {
-			c.Set(k, v)
+			c.startupCfg.Set(k, v)
 		}
 	}
 }
 
 func WithP2PPrivateKey(key crypto.PrivKey) Option {
-	return func(c config.Config) {
+	return func(c *BuildCfg) {
 		skbytes, err := key.Bytes()
 		if err != nil {
 			return
@@ -73,97 +80,136 @@ func WithP2PPrivateKey(key crypto.PrivKey) Option {
 			return
 		}
 		ident["ID"] = id.Pretty()
-		c.Set("Identity", ident)
+		c.startupCfg.Set("Identity", ident)
 	}
 }
 
 func WithP2PPort(port int) Option {
-	return func(c config.Config) {
-		c.Set("UseP2P", true)
-		c.Set("SwarmPort", port)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseP2P", true)
+		c.startupCfg.Set("SwarmPort", port)
 	}
 }
 
 func WithRepositoryRoot(path string) Option {
-	return func(c config.Config) {
-		c.Set("RootPath", path)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("RootPath", path)
 	}
 }
 
 func WithServiceName(name string) Option {
-	return func(c config.Config) {
-		c.Set("ServiceName", name)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("Services", []string{name})
 	}
 }
 
 func WithServiceACL(acl map[string]string) Option {
-	return func(c config.Config) {
-		c.Set("UseACL", true)
-		c.Set("ACL", acl)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseACL", true)
+		c.startupCfg.Set("ACL", acl)
 	}
 }
 
-func WithTaskManager(count int) Option {
-	return func(c config.Config) {
-		c.Set("TMWorkersMin", count)
+func WithTaskManager(min, max int) Option {
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("TMWorkers", map[string]int{
+			"Min": min,
+			"Max": max,
+		})
 	}
 }
 
 func WithPrometheus(useLatency bool) Option {
-	return func(c config.Config) {
-		c.Set("UsePrometheus", true)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UsePrometheus", true)
 		if useLatency {
-			c.Set("UsePrometheusLatency", true)
+			c.startupCfg.Set("UsePrometheusLatency", true)
 		}
 	}
 }
 
 func WithStaticDiscovery(svcAddrs map[string]string) Option {
-	return func(c config.Config) {
-		c.Set("UseStaticDiscovery", true)
-		c.Set("StaticAddresses", svcAddrs)
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseStaticDiscovery", true)
+		c.startupCfg.Set("StaticAddresses", svcAddrs)
 	}
 }
 
-func defaultOpts(c config.Config) {
-	if !c.Exists("ServiceName") {
-		c.Set("ServiceName", "msuite")
+func WithService(name string, initFn func(core.Service) error) Option {
+	return func(c *BuildCfg) {
+		c.services[name] = initFn
 	}
-	if !c.Exists("RootPath") {
+}
+
+func defaultOpts(c *BuildCfg) {
+	if !c.startupCfg.Exists("Services") {
+		c.startupCfg.Set("Services", []string{"msuite"})
+	}
+
+	var services []string
+	_ = c.startupCfg.Get("Services", &services)
+	for k := range c.services {
+		services = append(services, k)
+	}
+	c.startupCfg.Set("Services", services)
+
+	if !c.startupCfg.Exists("RootPath") {
 		hd, err := homedir.Dir()
 		if err != nil {
 			panic("Unable to determine home directory")
 		}
-		c.Set("RootPath", filepath.Join(hd, ".msuite"))
+		c.startupCfg.Set("RootPath", filepath.Join(hd, ".msuite"))
 	}
-	if c.IsSet("UseP2P") || c.IsSet("UseTCP") || c.IsSet("UseHTTP") {
-		var tmCount int
-		_ = c.Get("TMWorkersMin", &tmCount)
-		tmCount += 1
-		if c.IsSet("UseTCP") {
-			tmCount += 1
+	if c.startupCfg.IsSet("UseP2P") || c.startupCfg.IsSet("UseTCP") || c.startupCfg.IsSet("UseHTTP") {
+		tmCfg := map[string]int{}
+		found := c.startupCfg.Get("TMWorkers", &tmCfg)
+		if !found {
+			tmCfg = map[string]int{
+				"Min": 0,
+				"Max": 0,
+			}
 		}
-		if c.IsSet("UseP2P") {
-			tmCount += 2
+		tmCfg["Min"] += 1
+		if c.startupCfg.IsSet("UseTCP") {
+			tmCfg["Min"] += 1
 		}
-		if c.IsSet("UseHTTP") {
-			tmCount += 1
+		if c.startupCfg.IsSet("UseP2P") {
+			tmCfg["Min"] += 2
 		}
-		c.Set("TMWorkersMin", tmCount)
+		if c.startupCfg.IsSet("UseHTTP") {
+			tmCfg["Min"] += 1
+		}
+		if tmCfg["Max"] < tmCfg["Min"] {
+			tmCfg["Max"] = 2 * tmCfg["Min"]
+		}
+		c.startupCfg.Set("TMWorkers", tmCfg)
 	}
 }
 
 func New(opts ...Option) (core.Service, error) {
-	bCfg := jsonConf.DefaultConfig()
+	bCfg := &BuildCfg{
+		startupCfg: jsonConf.DefaultConfig(),
+		services:   make(map[string]func(core.Service) error),
+	}
 	for _, opt := range opts {
 		opt(bCfg)
 	}
 
 	defaultOpts(bCfg)
 
-	svc, err := node.New(bCfg)
+	svc, err := node.New(bCfg.startupCfg)
 	if err != nil {
 		return nil, err
+	}
+
+	for _, initFn := range bCfg.services {
+		err = initFn(svc)
+		if err != nil {
+			ctxd, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			defer cancel()
+			_ = svc.Stop(ctxd)
+			return nil, err
+		}
 	}
 
 	return svc, nil

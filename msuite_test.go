@@ -3,6 +3,7 @@ package msuite_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -145,7 +146,7 @@ func TestTM(t *testing.T) {
 	defer os.RemoveAll("tmp1")
 	app, err := msuite.New(
 		msuite.WithRepositoryRoot("tmp1"),
-		msuite.WithTaskManager(5),
+		msuite.WithTaskManager(5, 100),
 	)
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
@@ -338,6 +339,70 @@ func TestPrivateKey(t *testing.T) {
 	if nd.P2P().Host().ID().Pretty() != idCfg {
 		t.Fatal("incorrect id in P2P host expected", idCfg, nd.P2P().Host().ID().Pretty())
 	}
+
+	err = app.Start(context.Background())
+	if err != nil {
+		t.Fatal("Failed starting app", err.Error())
+	}
+	time.Sleep(time.Millisecond * 100)
+	err = app.Stop(context.Background())
+	if err != nil {
+		t.Fatal("Failed stopping app", err.Error())
+	}
+}
+
+func TestServices(t *testing.T) {
+	defer os.RemoveAll("tmp")
+
+	app, err := msuite.New(
+		msuite.WithServiceName("test"),
+		msuite.WithRepositoryRoot("tmp"),
+		msuite.WithGRPCTCPListener(10000),
+		msuite.WithStaticDiscovery(map[string]string{
+			"svc1": "IP1",
+			"svc2": "IP2",
+		}),
+		msuite.WithService("testErr", func(_ core.Service) error {
+			return errors.New("dummy error")
+		}),
+	)
+	if err == nil || app != nil {
+		t.Fatal("Expected error while creating new msuite instance")
+	}
+
+	initCalled := false
+
+	app, err = msuite.New(
+		msuite.WithServiceName("test"),
+		msuite.WithRepositoryRoot("tmp"),
+		msuite.WithGRPCTCPListener(10000),
+		msuite.WithStaticDiscovery(map[string]string{
+			"svc1": "IP1",
+			"svc2": "IP2",
+		}),
+		msuite.WithService("testErr", func(_ core.Service) error {
+			initCalled = true
+			return nil
+		}),
+	)
+	if err != nil {
+		t.Fatal("Failed creating new msuite instance", err)
+	}
+
+	if !initCalled {
+		t.Fatal("service not initialized")
+	}
+
+	MustRepo(t, app, true)
+	MustTM(t, app, true)
+	MustGRPC(t, app, true)
+	MustNode(t, app, false)
+	MustEvents(t, app, false)
+	MustSharedStorage(t, app, false)
+	MustLocker(t, app, false)
+	MustJWT(t, app, false)
+	MustACL(t, app, false)
+	MustHTTP(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
