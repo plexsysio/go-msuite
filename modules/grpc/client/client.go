@@ -64,6 +64,7 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 			startTTL time.Duration
 			err      error
 		)
+		started := time.Now()
 		for i, svc := range d.services {
 			log.Infof("Advertising service: %s", svc)
 			ttl, e := d.ds.Advertise(ctx, svc, discovery.TTL(time.Minute*15))
@@ -85,7 +86,14 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 				return nil
 			}
 		}
-		wait := 7 * startTTL / 8
+		// Time to wait needs to obey TTL of the first service advertised.
+		// If the operation takes time and we wait for all services to advertise, initial
+		// services might not get advertised.
+		ttl := startTTL - time.Since(started)
+		if ttl <= 0 {
+			ttl = startTTL
+		}
+		wait := 7 * ttl / 8
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():
