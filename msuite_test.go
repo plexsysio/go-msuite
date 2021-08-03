@@ -366,7 +366,7 @@ func TestServices(t *testing.T) {
 			return errors.New("dummy error")
 		}),
 	)
-	if err == nil {
+	if err == nil || app != nil {
 		t.Fatal("Expected error while creating new msuite instance")
 	}
 
