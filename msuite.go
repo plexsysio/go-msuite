@@ -3,6 +3,9 @@ package msuite
 import (
 	"context"
 	"encoding/base64"
+	"path/filepath"
+	"time"
+
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mitchellh/go-homedir"
@@ -10,8 +13,6 @@ import (
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/node"
-	"path/filepath"
-	"time"
 )
 
 type BuildCfg struct {

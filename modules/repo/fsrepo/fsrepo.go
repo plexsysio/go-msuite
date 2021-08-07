@@ -19,45 +19,53 @@ import (
 	"sync"
 )
 
-type repoOpener struct {
-	mtx    sync.Mutex
+type ActiveRepo struct {
 	Active *fsRepo
 	RefCnt int
+}
+
+type repoOpener struct {
+	mtx       sync.Mutex
+	ActiveMap map[string]*ActiveRepo
 }
 
 func (r *repoOpener) Open(path string) (repo.Repo, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if r.Active != nil {
-		r.RefCnt++
-		return r.Active, nil
+	if ar, found := r.ActiveMap[path]; found {
+		ar.RefCnt++
+		return ar.Active, nil
 	}
 	rp, err := open(path)
 	if err != nil {
 		return nil, err
 	}
-	r.Active = rp.(*fsRepo)
-	r.RefCnt = 1
-	return r.Active, nil
+	r.ActiveMap[path] = &ActiveRepo{
+		Active: rp.(*fsRepo),
+		RefCnt: 1,
+	}
+	return rp, nil
 }
 
-func (r *repoOpener) Close() error {
+func (r *repoOpener) Close(path string) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.RefCnt--
-	if r.RefCnt > 0 {
-		return nil
+	if ar, found := r.ActiveMap[path]; found {
+		ar.RefCnt--
+		if ar.RefCnt > 0 {
+			return nil
+		}
+		delete(r.ActiveMap, path)
+		return ar.Active.close()
 	}
-	ar := r.Active
-	r.Active = nil
-	return ar.close()
+	return nil
 }
 
 var (
 	pkgLock     sync.Mutex
-	opener      = &repoOpener{}
+	opener      = &repoOpener{ActiveMap: make(map[string]*ActiveRepo)}
 	storePrefix = ds.NewKey("s")
 )
 
@@ -258,7 +266,7 @@ func (f *fsRepo) Close() error {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 
-	return opener.Close()
+	return opener.Close(f.path)
 }
 
 func (f *fsRepo) close() error {

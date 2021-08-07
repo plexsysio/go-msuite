@@ -9,6 +9,7 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -110,8 +111,7 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 }
 
 var Prometheus = fx.Options(
-	fx.Provide(PromOptions),
-	fx.Invoke(PromRegister),
+	fx.Provide(Metrics),
 )
 
 type PrometheusOpts struct {
@@ -121,17 +121,16 @@ type PrometheusOpts struct {
 	SOut grpc.StreamServerInterceptor `group:"stream_opts"`
 }
 
-func PromOptions() (params PrometheusOpts, err error) {
-	params.SOut = grpc_prometheus.StreamServerInterceptor
-	params.UOut = grpc_prometheus.UnaryServerInterceptor
-	return
-}
-
-func PromRegister(c config.Config, s *grpc.Server) {
-	grpc_prometheus.Register(s)
+func Metrics(c config.Config, s *grpc.Server, reg *prometheus.Registry) (params PrometheusOpts, err error) {
+	grpcMetrics := grpc_prometheus.NewServerMetrics()
+	reg.MustRegister(grpcMetrics)
 	if c.IsSet("UsePrometheusLatency") {
-		grpc_prometheus.EnableHandlingTimeHistogram()
+		grpcMetrics.EnableHandlingTimeHistogram()
 	}
+	grpcMetrics.InitializeMetrics(s)
+	params.SOut = grpcMetrics.StreamServerInterceptor()
+	params.UOut = grpcMetrics.UnaryServerInterceptor()
+	return
 }
 
 var TracerModule = fx.Options(

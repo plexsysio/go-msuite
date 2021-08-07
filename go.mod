@@ -12,7 +12,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
-	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hsanjuan/ipfs-lite v1.1.18
 	github.com/ipfs/go-blockservice v0.1.4
 	github.com/ipfs/go-cid v0.0.7
@@ -37,7 +37,7 @@ require (
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/plexsysio/dLocker v0.0.2
 	github.com/plexsysio/taskmanager v0.0.0-20210719193446-5b3bff8bc055
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.11.0
 	github.com/rs/cors v1.7.0
 	github.com/slok/go-http-metrics v0.9.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible // indirect

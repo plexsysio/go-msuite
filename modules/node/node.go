@@ -15,6 +15,7 @@ import (
 	"github.com/plexsysio/go-msuite/core"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/diag/metrics"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"github.com/plexsysio/go-msuite/modules/events"
 	"github.com/plexsysio/go-msuite/modules/grpc/client"
@@ -86,6 +87,7 @@ func New(bCfg config.Config) (core.Service, error) {
 			return tm
 		}, found),
 		utils.MaybeProvide(status.New, found),
+		utils.MaybeProvide(metrics.New, bCfg.IsSet("UsePrometheus")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),
