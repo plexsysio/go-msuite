@@ -142,6 +142,12 @@ func WithService(name string, initFn func(core.Service) error) Option {
 	}
 }
 
+func WithDebug() Option {
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseDebug", true)
+	}
+}
+
 func defaultOpts(c *BuildCfg) {
 	if !c.startupCfg.Exists("Services") {
 		c.startupCfg.Set("Services", []string{"msuite"})

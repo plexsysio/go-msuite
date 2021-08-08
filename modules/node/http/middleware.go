@@ -1,7 +1,9 @@
 package http
 
 import (
+	"expvar"
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -67,4 +69,20 @@ func Register(mux *http.ServeMux, reg *prometheus.Registry) {
 		reg,
 		promhttp.HandlerFor(reg, promhttp.HandlerOpts{}),
 	))
+}
+
+func RegisterDebug(mux *http.ServeMux) {
+	mux.Handle("/debug/pprof", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		u := r.URL
+		u.Path += "/"
+		http.Redirect(w, r, u.String(), http.StatusPermanentRedirect)
+	}))
+
+	mux.Handle("/debug/pprof/cmdline", http.HandlerFunc(pprof.Cmdline))
+	mux.Handle("/debug/pprof/profile", http.HandlerFunc(pprof.Profile))
+	mux.Handle("/debug/pprof/symbol", http.HandlerFunc(pprof.Symbol))
+	mux.Handle("/debug/pprof/trace", http.HandlerFunc(pprof.Trace))
+	mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
+
+	mux.Handle("/debug/vars", expvar.Handler())
 }

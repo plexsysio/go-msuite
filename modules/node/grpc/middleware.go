@@ -112,6 +112,8 @@ func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string
 
 var Prometheus = fx.Options(
 	fx.Provide(Metrics),
+	fx.Provide(MetricsOpts),
+	fx.Invoke(MetricsRegister),
 )
 
 type PrometheusOpts struct {
@@ -121,16 +123,22 @@ type PrometheusOpts struct {
 	SOut grpc.StreamServerInterceptor `group:"stream_opts"`
 }
 
-func Metrics(c config.Config, s *grpc.Server, reg *prometheus.Registry) (params PrometheusOpts, err error) {
-	grpcMetrics := grpc_prometheus.NewServerMetrics()
-	reg.MustRegister(grpcMetrics)
+func Metrics() *grpc_prometheus.ServerMetrics {
+	return grpc_prometheus.NewServerMetrics()
+}
+
+func MetricsOpts(c config.Config, grpcMetrics *grpc_prometheus.ServerMetrics) (params PrometheusOpts, err error) {
 	if c.IsSet("UsePrometheusLatency") {
 		grpcMetrics.EnableHandlingTimeHistogram()
 	}
-	grpcMetrics.InitializeMetrics(s)
 	params.SOut = grpcMetrics.StreamServerInterceptor()
 	params.UOut = grpcMetrics.UnaryServerInterceptor()
 	return
+}
+
+func MetricsRegister(reg *prometheus.Registry, s *grpc.Server, metrics *grpc_prometheus.ServerMetrics) {
+	reg.MustRegister(metrics)
+	metrics.InitializeMetrics(s)
 }
 
 var TracerModule = fx.Options(
