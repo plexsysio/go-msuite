@@ -2,9 +2,12 @@ package http
 
 import (
 	"expvar"
+	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"strings"
 
+	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
@@ -28,12 +31,39 @@ func CORS() MiddlewareOut {
 	}
 }
 
-func JWT() MiddlewareOut {
+func JWT(jm auth.JWTManager, am auth.ACL) MiddlewareOut {
 	return MiddlewareOut{
 		Mware: func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				log.Info("JWT called")
-				next.ServeHTTP(w, r)
+				log.Info("JWT middleware called")
+				roles := am.Allowed(r.URL.String())
+				for _, rl := range roles {
+					if rl == auth.None {
+						// everyone can access
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
+				bearerToken := r.Header.Get("Authorization")
+				tokenArr := strings.Split(bearerToken, " ")
+				if len(tokenArr) != 2 {
+					// token not present
+					http.Error(w, "token is absent", http.StatusBadRequest)
+					return
+				}
+				accessToken := tokenArr[1]
+				claims, err := jm.Verify(accessToken)
+				if err != nil {
+					http.Error(w, fmt.Sprintf("failed verifying token: %s", err.Error()), http.StatusUnauthorized)
+					return
+				}
+				for _, role := range roles {
+					if string(role) == claims.Role {
+						next.ServeHTTP(w, r)
+						return
+					}
+				}
+				http.Error(w, "invalid role for resource", http.StatusUnauthorized)
 			})
 		},
 	}
