@@ -4,19 +4,20 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	ssStore "github.com/SWRMLabs/ss-ds-store"
-	"github.com/SWRMLabs/ss-store"
+	"path/filepath"
+	"sync"
+
 	"github.com/hashicorp/go-multierror"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/plexsysio/gkvstore"
+	ipfsdsStore "github.com/plexsysio/gkvstore-ipfsds"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/utils"
-	"path/filepath"
-	"sync"
 )
 
 type ActiveRepo struct {
@@ -73,7 +74,7 @@ type fsRepo struct {
 	path    string
 	cfg     config.Config
 	rootDS  ds.Batching
-	kvStore store.Store
+	kvStore gkvstore.Store
 }
 
 func datastorePath(root string) string {
@@ -101,7 +102,7 @@ func initIdentity(c config.Config) error {
 	if err != nil {
 		return err
 	}
-	skbytes, err := sk.Bytes()
+	skbytes, err := sk.Raw()
 	if err != nil {
 		return err
 	}
@@ -182,13 +183,7 @@ func (f *fsRepo) openDatastore() error {
 
 func (f *fsRepo) openStore() error {
 	nds := namespace.Wrap(f.rootDS, storePrefix)
-	dsStore, err := ssStore.NewDataStore(&ssStore.DSConfig{
-		DS: nds,
-	})
-	if err != nil {
-		return err
-	}
-	f.kvStore = dsStore
+	f.kvStore = ipfsdsStore.New(nds)
 	return nil
 }
 
@@ -250,7 +245,7 @@ func (f *fsRepo) SetConfig(c config.Config) error {
 	return utils.WriteToFile(confRdr, configPath(f.path))
 }
 
-func (f *fsRepo) Store() store.Store {
+func (f *fsRepo) Store() gkvstore.Store {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 	return f.kvStore

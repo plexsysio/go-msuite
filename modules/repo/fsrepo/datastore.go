@@ -1,15 +1,19 @@
 package fsrepo
 
 import (
+	"context"
 	"errors"
+
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/mount"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/utils"
+
 	// "github.com/ipfs/go-ds-badger2"
-	"github.com/ipfs/go-ds-flatfs"
-	"github.com/ipfs/go-ds-leveldb"
 	"path/filepath"
+
+	flatfs "github.com/ipfs/go-ds-flatfs"
+	leveldb "github.com/ipfs/go-ds-leveldb"
 )
 
 type MountInfo struct {
@@ -125,7 +129,7 @@ func (m *mountedDS) Mounts() ([]MountInfo, error) {
 	mntInfos := []MountInfo{}
 	for k, v := range m.mnts {
 		if pds, ok := v.Datastore.(ds.PersistentDatastore); ok {
-			usg, err := pds.DiskUsage()
+			usg, err := pds.DiskUsage(context.TODO())
 			if err != nil {
 				return nil, err
 			}

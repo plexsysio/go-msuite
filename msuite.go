@@ -11,7 +11,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/plexsysio/go-msuite/core"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/node"
 )
 
@@ -69,7 +69,7 @@ func WithLocker(lkr string, cfg map[string]string) Option {
 
 func WithP2PPrivateKey(key crypto.PrivKey) Option {
 	return func(c *BuildCfg) {
-		skbytes, err := key.Bytes()
+		skbytes, err := key.Raw()
 		if err != nil {
 			return
 		}

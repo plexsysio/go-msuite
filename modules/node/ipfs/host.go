@@ -17,7 +17,6 @@ import (
 	"github.com/libp2p/go-libp2p-core/routing"
 	p2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
-	libp2pquic "github.com/libp2p/go-libp2p-quic-transport"
 	libp2ptls "github.com/libp2p/go-libp2p-tls"
 	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/plexsysio/go-msuite/modules/config"
@@ -50,7 +49,6 @@ var Libp2pOptionsExtra = []libp2p.Option{
 	libp2p.EnableAutoRelay(),
 	libp2p.EnableNATService(),
 	libp2p.Security(libp2ptls.ID, libp2ptls.New),
-	libp2p.Transport(libp2pquic.NewTransport),
 	libp2p.DefaultTransports,
 }
 

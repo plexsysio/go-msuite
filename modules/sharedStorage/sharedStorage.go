@@ -3,17 +3,17 @@ package sharedStorage
 import (
 	"context"
 
-	"github.com/SWRMLabs/ants-db"
-	"github.com/SWRMLabs/ss-store"
-	"github.com/hsanjuan/ipfs-lite"
+	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/ipfs/go-blockservice"
 	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
-	"github.com/ipfs/go-ipfs-blockstore"
+	blockstore "github.com/ipfs/go-ipfs-blockstore"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/ipfs/go-merkledag"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	antsdb "github.com/plexsysio/ants-db"
+	store "github.com/plexsysio/gkvstore"
 )
 
 type Callback interface {
@@ -73,8 +73,7 @@ type nsSyncer struct {
 }
 
 func (n *nsSyncer) HasBlock(c cid.Cid) (bool, error) {
-	return n.bs.Has(c)
-
+	return n.bs.Has(context.TODO(), c)
 }
 
 func (n *nsSyncer) Session(ctx context.Context) ipld.NodeGetter {
