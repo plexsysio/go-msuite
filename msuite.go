@@ -69,7 +69,7 @@ func WithLocker(lkr string, cfg map[string]string) Option {
 
 func WithP2PPrivateKey(key crypto.PrivKey) Option {
 	return func(c *BuildCfg) {
-		skbytes, err := key.Raw()
+		skbytes, err := crypto.MarshalPrivateKey(key)
 		if err != nil {
 			return
 		}

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 )
 
@@ -130,7 +130,7 @@ func TestRepo(t *testing.T) {
 	}
 
 	if len(mntInfo) != 2 {
-		t.Fatal("expected 2 mounts")
+		t.Fatal("expected 2 mounts found", len(mntInfo))
 	}
 
 	for _, v := range mntInfo {

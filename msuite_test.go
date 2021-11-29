@@ -285,7 +285,7 @@ func TestPrivateKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	skbytes, err := sk.Raw()
+	skbytes, err := crypto.MarshalPrivateKey(sk)
 	if err != nil {
 		t.Fatal(err)
 	}

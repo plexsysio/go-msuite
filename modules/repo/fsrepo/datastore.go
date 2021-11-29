@@ -139,6 +139,21 @@ func (m *mountedDS) Mounts() ([]MountInfo, error) {
 				Usage:  usg,
 			})
 		}
+		if pds, ok := v.Datastore.(oldPersistentDs); ok {
+			usg, err := pds.DiskUsage()
+			if err != nil {
+				return nil, err
+			}
+			mntInfos = append(mntInfos, MountInfo{
+				Path:   k,
+				Prefix: v.Prefix.String(),
+				Usage:  usg,
+			})
+		}
 	}
 	return mntInfos, nil
+}
+
+type oldPersistentDs interface {
+	DiskUsage() (uint64, error)
 }

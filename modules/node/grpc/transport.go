@@ -8,10 +8,10 @@ import (
 	"sync"
 
 	"github.com/libp2p/go-libp2p-core/host"
-	"github.com/libp2p/go-libp2p-gostream"
+	gostream "github.com/libp2p/go-libp2p-gostream"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
-	"github.com/plexsysio/go-msuite/modules/grpc/mux"
+	grpcmux "github.com/plexsysio/go-msuite/modules/grpc/mux"
 	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
@@ -37,7 +37,7 @@ func NewMuxedListener(
 	tm *taskmanager.TaskManager,
 ) (*grpcmux.Mux, error) {
 	m := grpcmux.New(ctx, in.Listeners, tm)
-	m.Start(func(key string, err error) {
+	m.Start(ctx, func(key string, err error) {
 		dMap := map[string]interface{}{
 			key: "Failed Err:" + err.Error(),
 		}

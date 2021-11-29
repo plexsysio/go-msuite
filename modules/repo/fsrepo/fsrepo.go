@@ -102,7 +102,7 @@ func initIdentity(c config.Config) error {
 	if err != nil {
 		return err
 	}
-	skbytes, err := sk.Raw()
+	skbytes, err := ci.MarshalPrivateKey(sk)
 	if err != nil {
 		return err
 	}
