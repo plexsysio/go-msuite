@@ -89,6 +89,7 @@ func New(bCfg config.Config) (core.Service, error) {
 		}, found),
 		utils.MaybeProvide(status.New, found),
 		utils.MaybeProvide(metrics.New, bCfg.IsSet("UsePrometheus")),
+		utils.MaybeProvide(metrics.NewTracer, bCfg.IsSet("UseTracing")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),
