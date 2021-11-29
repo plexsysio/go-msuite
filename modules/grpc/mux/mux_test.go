@@ -13,7 +13,7 @@ import (
 )
 
 func TestMultipleListeners(t *testing.T) {
-	logger.SetLogLevel("grpc/lmux", "*")
+	_ = logger.SetLogLevel("grpc/lmux", "*")
 
 	tcpListener1, err := net.Listen("tcp", ":10081")
 	if err != nil {
