@@ -7,6 +7,8 @@ import (
 	"net/http/pprof"
 	"strings"
 
+	"github.com/opentracing-contrib/go-stdlib/nethttp"
+	"github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -69,13 +71,10 @@ func JWT(jm auth.JWTManager, am auth.ACL) MiddlewareOut {
 	}
 }
 
-func Tracing() MiddlewareOut {
+func Tracing(tracer opentracing.Tracer) MiddlewareOut {
 	return MiddlewareOut{
 		Mware: func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				log.Infof("Tracing called")
-				next.ServeHTTP(w, r)
-			})
+			return nethttp.Middleware(tracer, next)
 		},
 	}
 }

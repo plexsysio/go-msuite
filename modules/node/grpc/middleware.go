@@ -2,9 +2,8 @@ package grpcsvc
 
 import (
 	"context"
-	"errors"
 
-	"github.com/grpc-ecosystem/go-grpc-prometheus"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/go-msuite/modules/auth"
@@ -148,33 +147,10 @@ var TracerModule = fx.Options(
 type TracerOpts struct {
 	fx.Out
 
-	Tracer opentracing.Tracer
-	UOut   grpc.UnaryServerInterceptor `group:"unary_opts"`
+	UOut grpc.UnaryServerInterceptor `group:"unary_opts"`
 }
 
-func JaegerTracerOptions(
-	lc fx.Lifecycle,
-	conf config.Config,
-) (params TracerOpts, retErr error) {
-	svcName := "default"
-	conf.Get("TracingName", &svcName)
-	var tHost string
-	ok := conf.Get("TracingHost", &tHost)
-	if !ok {
-		retErr = errors.New("Tracing host not specified")
-		return
-	}
-	tracer, closer, err := gtrace.NewJaegerTracer(svcName, tHost)
-	if err != nil {
-		retErr = err
-		return
-	}
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			return closer.Close()
-		},
-	})
+func JaegerTracerOptions(tracer opentracing.Tracer) (params TracerOpts) {
 	params.UOut = gtrace.ServerInterceptor(tracer)
-	params.Tracer = tracer
 	return
 }

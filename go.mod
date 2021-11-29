@@ -30,6 +30,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moxiaomomo/grpc-jaeger v0.0.0-20180617090213-05b879580c4a
 	github.com/multiformats/go-multiaddr v0.4.1
+	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/plexsysio/ants-db v0.0.5-0.20211128140316-e6220c9cd405
 	github.com/plexsysio/dLocker v0.0.3-0.20211128192511-fcfcafab3562
