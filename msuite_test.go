@@ -285,7 +285,7 @@ func TestPrivateKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	skbytes, err := sk.Bytes()
+	skbytes, err := sk.Raw()
 	if err != nil {
 		t.Fatal(err)
 	}
