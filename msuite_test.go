@@ -16,7 +16,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	_ = logger.SetLogLevel("*", "Error")
+	_ = logger.SetLogLevel("*", "Debug")
 	os.Exit(m.Run())
 }
 
@@ -285,7 +285,7 @@ func TestPrivateKey(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	skbytes, err := sk.Bytes()
+	skbytes, err := crypto.MarshalPrivateKey(sk)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -352,11 +352,12 @@ func TestPrivateKey(t *testing.T) {
 }
 
 func TestServices(t *testing.T) {
-	defer os.RemoveAll("tmp")
+	defer os.RemoveAll("tmp5")
+	defer os.RemoveAll("tmp6")
 
 	app, err := msuite.New(
 		msuite.WithServiceName("test"),
-		msuite.WithRepositoryRoot("tmp"),
+		msuite.WithRepositoryRoot("tmp5"),
 		msuite.WithGRPCTCPListener(10000),
 		msuite.WithStaticDiscovery(map[string]string{
 			"svc1": "IP1",
@@ -374,8 +375,10 @@ func TestServices(t *testing.T) {
 
 	app, err = msuite.New(
 		msuite.WithServiceName("test"),
-		msuite.WithRepositoryRoot("tmp"),
+		msuite.WithRepositoryRoot("tmp6"),
 		msuite.WithGRPCTCPListener(10000),
+		msuite.WithHTTP(10001),
+		msuite.WithPrometheus(true),
 		msuite.WithStaticDiscovery(map[string]string{
 			"svc1": "IP1",
 			"svc2": "IP2",
@@ -396,13 +399,13 @@ func TestServices(t *testing.T) {
 	MustRepo(t, app, true)
 	MustTM(t, app, true)
 	MustGRPC(t, app, true)
+	MustHTTP(t, app, true)
 	MustNode(t, app, false)
 	MustEvents(t, app, false)
 	MustSharedStorage(t, app, false)
 	MustLocker(t, app, false)
 	MustJWT(t, app, false)
 	MustACL(t, app, false)
-	MustHTTP(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {

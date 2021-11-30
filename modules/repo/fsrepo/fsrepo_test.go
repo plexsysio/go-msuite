@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 )
 
@@ -63,25 +63,22 @@ func TestOpen(t *testing.T) {
 	if r2 != r {
 		t.Fatal("Newly opened repo doesnt match already open one")
 	}
-	if fsrepo.Opener.RefCnt != 2 {
-		t.Fatal("RefCnt is incorrect", fsrepo.Opener.RefCnt)
+	if fsrepo.Opener.ActiveMap[".testrepo"].RefCnt != 2 {
+		t.Fatal("RefCnt is incorrect", fsrepo.Opener.ActiveMap[".testrepo"].RefCnt)
 	}
 	err = r.Close()
 	if err != nil {
 		t.Fatal("Failed closing repo", err)
 	}
-	if fsrepo.Opener.RefCnt != 1 {
+	if fsrepo.Opener.ActiveMap[".testrepo"].RefCnt != 1 {
 		t.Fatal("RefCnt is incorrect", fsrepo.Opener)
 	}
 	err = r2.Close()
 	if err != nil {
 		t.Fatal("Failed closing repo", err)
 	}
-	if fsrepo.Opener.RefCnt != 0 {
-		t.Fatal("RefCnt is incorrect", fsrepo.Opener)
-	}
-	if fsrepo.Opener.Active != nil {
-		t.Fatal("Close did not clear internal stores")
+	if _, found := fsrepo.Opener.ActiveMap[".testrepo"]; found {
+		t.Fatal("Repo should not be present in active map", fsrepo.Opener)
 	}
 }
 
@@ -133,7 +130,7 @@ func TestRepo(t *testing.T) {
 	}
 
 	if len(mntInfo) != 2 {
-		t.Fatal("expected 2 mounts")
+		t.Fatal("expected 2 mounts found", len(mntInfo))
 	}
 
 	for _, v := range mntInfo {

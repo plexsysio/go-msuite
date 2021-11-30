@@ -1,10 +1,11 @@
 package repo
 
 import (
-	"github.com/SWRMLabs/ss-store"
-	"github.com/plexsysio/go-msuite/modules/config"
-	ds "github.com/ipfs/go-datastore"
 	"io"
+
+	ds "github.com/ipfs/go-datastore"
+	store "github.com/plexsysio/gkvstore"
+	"github.com/plexsysio/go-msuite/modules/config"
 )
 
 type Repo interface {

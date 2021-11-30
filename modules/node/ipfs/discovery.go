@@ -8,7 +8,7 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-core/peerstore"
-	"github.com/libp2p/go-libp2p/p2p/discovery"
+	"github.com/libp2p/go-libp2p/p2p/discovery/mdns_legacy"
 )
 
 var log = logger.Logger("mdnsdiscovery")
@@ -16,7 +16,7 @@ var log = logger.Logger("mdnsdiscovery")
 const Rendezvous string = "/msuite/node"
 
 func NewMDNSDiscovery(ctx context.Context, h host.Host) error {
-	ser, err := discovery.NewMdnsService(ctx, h, time.Minute*5, Rendezvous)
+	ser, err := mdns_legacy.NewMdnsService(ctx, h, time.Minute*5, Rendezvous)
 	if err != nil {
 		log.Errorf("Failed registering MDNS service Err:%s", err.Error())
 		return err

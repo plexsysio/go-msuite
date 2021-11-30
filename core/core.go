@@ -3,21 +3,22 @@ package core
 
 import (
 	"context"
-	"github.com/SWRMLabs/ss-store"
+	"net/http"
+	"os"
+
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/plexsysio/dLocker"
+	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/events"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/taskmanager"
 	"google.golang.org/grpc"
-	"net/http"
-	"os"
 )
 
 type Service interface {

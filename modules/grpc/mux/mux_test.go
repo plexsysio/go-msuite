@@ -7,14 +7,27 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plexsysio/go-msuite/modules/grpc/mux"
+	logger "github.com/ipfs/go-log/v2"
+	grpcmux "github.com/plexsysio/go-msuite/modules/grpc/mux"
 	"github.com/plexsysio/taskmanager"
 )
 
 func TestMultipleListeners(t *testing.T) {
-	tcpListener1, _ := net.Listen("tcp", ":8080")
-	tcpListener2, _ := net.Listen("tcp", ":8081")
-	tcpListener3, _ := net.Listen("tcp", ":8082")
+	_ = logger.SetLogLevel("grpc/lmux", "*")
+
+	tcpListener1, err := net.Listen("tcp", ":10081")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tcpListener2, err := net.Listen("tcp", ":10082")
+	if err != nil {
+		t.Fatal(err)
+	}
+	tcpListener3, err := net.Listen("tcp", ":10083")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	tm := taskmanager.New(4, 10, time.Second*10)
 
 	listeners := []grpcmux.MuxListener{
@@ -38,7 +51,7 @@ func TestMultipleListeners(t *testing.T) {
 		tm,
 	)
 
-	m.Start(nil)
+	m.Start(context.TODO(), nil)
 
 	connChan := make(chan net.Conn)
 
@@ -76,15 +89,15 @@ func TestMultipleListeners(t *testing.T) {
 		close(done)
 	}()
 
-	_, err := net.Dial("tcp", ":8080")
+	_, err = net.Dial("tcp", ":10081")
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = net.Dial("tcp", ":8081")
+	_, err = net.Dial("tcp", ":10082")
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = net.Dial("tcp", ":8082")
+	_, err = net.Dial("tcp", ":10083")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,15 +3,16 @@ package msuite
 import (
 	"context"
 	"encoding/base64"
+	"path/filepath"
+	"time"
+
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/mitchellh/go-homedir"
 	"github.com/plexsysio/go-msuite/core"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/node"
-	"path/filepath"
-	"time"
 )
 
 type BuildCfg struct {
@@ -68,7 +69,7 @@ func WithLocker(lkr string, cfg map[string]string) Option {
 
 func WithP2PPrivateKey(key crypto.PrivKey) Option {
 	return func(c *BuildCfg) {
-		skbytes, err := key.Bytes()
+		skbytes, err := crypto.MarshalPrivateKey(key)
 		if err != nil {
 			return
 		}
@@ -138,6 +139,12 @@ func WithStaticDiscovery(svcAddrs map[string]string) Option {
 func WithService(name string, initFn func(core.Service) error) Option {
 	return func(c *BuildCfg) {
 		c.services[name] = initFn
+	}
+}
+
+func WithDebug() Option {
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseDebug", true)
 	}
 }
 

@@ -3,7 +3,9 @@ package node
 import (
 	"context"
 	"errors"
-	"github.com/SWRMLabs/ss-store"
+	"net/http"
+	"time"
+
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
@@ -12,13 +14,15 @@ import (
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/plexsysio/dLocker"
+	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/core"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/diag/metrics"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"github.com/plexsysio/go-msuite/modules/events"
-	"github.com/plexsysio/go-msuite/modules/grpc/client"
-	"github.com/plexsysio/go-msuite/modules/node/grpc"
+	grpcclient "github.com/plexsysio/go-msuite/modules/grpc/client"
+	grpcsvc "github.com/plexsysio/go-msuite/modules/node/grpc"
 	mhttp "github.com/plexsysio/go-msuite/modules/node/http"
 	"github.com/plexsysio/go-msuite/modules/node/ipfs"
 	"github.com/plexsysio/go-msuite/modules/node/locker"
@@ -29,15 +33,13 @@ import (
 	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
-	"net/http"
-	"time"
 )
 
 type FxLog struct{}
 
 var log = logger.Logger("node")
 
-func (f *FxLog) Printf(msg string, args ...interface{}) {
+func (*FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
 }
 
@@ -86,6 +88,8 @@ func New(bCfg config.Config) (core.Service, error) {
 			return tm
 		}, found),
 		utils.MaybeProvide(status.New, found),
+		utils.MaybeProvide(metrics.New, bCfg.IsSet("UsePrometheus")),
+		utils.MaybeProvide(metrics.NewTracer, bCfg.IsSet("UseTracing")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),
 		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),

@@ -40,7 +40,7 @@ func New(
 	return m
 }
 
-func (m *Mux) Start(reportError func(string, error)) {
+func (m *Mux) Start(ctx context.Context, reportError func(string, error)) {
 	for _, v := range m.listeners {
 		l := &muxListener{
 			tag:      v.Tag,
@@ -52,9 +52,14 @@ func (m *Mux) Start(reportError func(string, error)) {
 				}
 			},
 		}
-		_, err := m.tm.Go(l)
+		sched, err := m.tm.Go(l)
 		if err != nil {
 			reportError(v.Tag, err)
+		}
+		select {
+		case <-sched:
+		case <-ctx.Done():
+			return
 		}
 	}
 }

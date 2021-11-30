@@ -1,9 +1,11 @@
 package auth
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"github.com/SWRMLabs/ss-store"
+
+	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/modules/repo"
 )
 
@@ -57,11 +59,11 @@ type Acl struct {
 	Roles int
 }
 
-func (m *Acl) GetId() string {
+func (m *Acl) GetID() string {
 	return m.Key
 }
 
-func (m *Acl) GetNamespace() string {
+func (*Acl) GetNamespace() string {
 	return "Acl"
 }
 
@@ -100,21 +102,21 @@ func (a *aclManager) Configure(rsc string, role Role) error {
 		Key:   rsc,
 		Roles: r,
 	}
-	return a.st.Update(nacl)
+	return a.st.Update(context.TODO(), nacl)
 }
 
 func (a *aclManager) Delete(rsc string) error {
 	nacl := &Acl{
 		Key: rsc,
 	}
-	return a.st.Delete(nacl)
+	return a.st.Delete(context.TODO(), nacl)
 }
 
 func (a *aclManager) Authorized(rsc string, role Role) bool {
 	nacl := &Acl{
 		Key: rsc,
 	}
-	err := a.st.Read(nacl)
+	err := a.st.Read(context.TODO(), nacl)
 	if err != nil {
 		// If there is no ACL configured, by default access is universal
 		return true
@@ -130,7 +132,7 @@ func (a *aclManager) Allowed(rsc string) []Role {
 	nacl := &Acl{
 		Key: rsc,
 	}
-	err := a.st.Read(nacl)
+	err := a.st.Read(context.TODO(), nacl)
 	if err != nil {
 		// If there is no ACL configured, by default access is universal
 		return []Role{None, PublicRead, PublicWrite, AuthRead, AuthWrite, Admin}

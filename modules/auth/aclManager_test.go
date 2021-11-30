@@ -3,13 +3,13 @@ package auth_test
 import (
 	"testing"
 
-	dsstore "github.com/SWRMLabs/ss-ds-store"
-	"github.com/SWRMLabs/ss-store"
 	ds "github.com/ipfs/go-datastore"
 	syncds "github.com/ipfs/go-datastore/sync"
+	store "github.com/plexsysio/gkvstore"
+	dsstore "github.com/plexsysio/gkvstore-ipfsds"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 )
 
 type testRepo struct {
@@ -21,7 +21,7 @@ type testRepo struct {
 func newTestRepo() *testRepo {
 	cfg := jsonConf.DefaultConfig()
 	bs := syncds.MutexWrap(ds.NewMapDatastore())
-	st, _ := dsstore.NewDataStore(&dsstore.DSConfig{DS: bs})
+	st := dsstore.New(bs)
 	return &testRepo{st: st, cfg: cfg, d: bs}
 }
 

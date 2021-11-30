@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	nhttp "net/http"
+
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
-	nhttp "net/http"
 )
 
 var log = logger.Logger("http")
@@ -22,6 +23,7 @@ var Module = func(c config.Config) fx.Option {
 		utils.MaybeProvide(JWT, c.IsSet("UseJWT")),
 		utils.MaybeProvide(Tracing, c.IsSet("UseTracing")),
 		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
+		utils.MaybeInvoke(RegisterDebug, c.IsSet("UseDebug")),
 		utils.MaybeInvoke(NewHTTPServer, c.IsSet("UseHTTP")),
 	)
 }

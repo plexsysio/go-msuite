@@ -4,60 +4,69 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	ssStore "github.com/SWRMLabs/ss-ds-store"
-	"github.com/SWRMLabs/ss-store"
+	"path/filepath"
+	"sync"
+
 	"github.com/hashicorp/go-multierror"
 	ds "github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
 	ci "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/plexsysio/gkvstore"
+	ipfsdsStore "github.com/plexsysio/gkvstore-ipfsds"
 	"github.com/plexsysio/go-msuite/modules/config"
-	"github.com/plexsysio/go-msuite/modules/config/json"
+	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/utils"
-	"path/filepath"
-	"sync"
 )
 
-type repoOpener struct {
-	mtx    sync.Mutex
+type ActiveRepo struct {
 	Active *fsRepo
 	RefCnt int
+}
+
+type repoOpener struct {
+	mtx       sync.Mutex
+	ActiveMap map[string]*ActiveRepo
 }
 
 func (r *repoOpener) Open(path string) (repo.Repo, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if r.Active != nil {
-		r.RefCnt++
-		return r.Active, nil
+	if ar, found := r.ActiveMap[path]; found {
+		ar.RefCnt++
+		return ar.Active, nil
 	}
 	rp, err := open(path)
 	if err != nil {
 		return nil, err
 	}
-	r.Active = rp.(*fsRepo)
-	r.RefCnt = 1
-	return r.Active, nil
+	r.ActiveMap[path] = &ActiveRepo{
+		Active: rp.(*fsRepo),
+		RefCnt: 1,
+	}
+	return rp, nil
 }
 
-func (r *repoOpener) Close() error {
+func (r *repoOpener) Close(path string) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	r.RefCnt--
-	if r.RefCnt > 0 {
-		return nil
+	if ar, found := r.ActiveMap[path]; found {
+		ar.RefCnt--
+		if ar.RefCnt > 0 {
+			return nil
+		}
+		delete(r.ActiveMap, path)
+		return ar.Active.close()
 	}
-	ar := r.Active
-	r.Active = nil
-	return ar.close()
+	return nil
 }
 
 var (
 	pkgLock     sync.Mutex
-	opener      = &repoOpener{}
+	opener      = &repoOpener{ActiveMap: make(map[string]*ActiveRepo)}
 	storePrefix = ds.NewKey("s")
 )
 
@@ -65,7 +74,7 @@ type fsRepo struct {
 	path    string
 	cfg     config.Config
 	rootDS  ds.Batching
-	kvStore store.Store
+	kvStore gkvstore.Store
 }
 
 func datastorePath(root string) string {
@@ -93,7 +102,7 @@ func initIdentity(c config.Config) error {
 	if err != nil {
 		return err
 	}
-	skbytes, err := sk.Bytes()
+	skbytes, err := ci.MarshalPrivateKey(sk)
 	if err != nil {
 		return err
 	}
@@ -174,13 +183,7 @@ func (f *fsRepo) openDatastore() error {
 
 func (f *fsRepo) openStore() error {
 	nds := namespace.Wrap(f.rootDS, storePrefix)
-	dsStore, err := ssStore.NewDataStore(&ssStore.DSConfig{
-		DS: nds,
-	})
-	if err != nil {
-		return err
-	}
-	f.kvStore = dsStore
+	f.kvStore = ipfsdsStore.New(nds)
 	return nil
 }
 
@@ -242,7 +245,7 @@ func (f *fsRepo) SetConfig(c config.Config) error {
 	return utils.WriteToFile(confRdr, configPath(f.path))
 }
 
-func (f *fsRepo) Store() store.Store {
+func (f *fsRepo) Store() gkvstore.Store {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 	return f.kvStore
@@ -258,7 +261,7 @@ func (f *fsRepo) Close() error {
 	pkgLock.Lock()
 	defer pkgLock.Unlock()
 
-	return opener.Close()
+	return opener.Close(f.path)
 }
 
 func (f *fsRepo) close() error {
