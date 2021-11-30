@@ -39,7 +39,7 @@ type FxLog struct{}
 
 var log = logger.Logger("node")
 
-func (f *FxLog) Printf(msg string, args ...interface{}) {
+func (*FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
 }
 

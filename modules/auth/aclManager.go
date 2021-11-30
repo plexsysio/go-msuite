@@ -63,7 +63,7 @@ func (m *Acl) GetID() string {
 	return m.Key
 }
 
-func (m *Acl) GetNamespace() string {
+func (*Acl) GetNamespace() string {
 	return "Acl"
 }
 
