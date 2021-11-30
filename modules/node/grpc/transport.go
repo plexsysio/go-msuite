@@ -96,7 +96,6 @@ func NewTCPListener(conf config.Config) (MuxListenerOut, error) {
 }
 
 func NewP2PListener(
-	ctx context.Context,
 	h host.Host,
 ) (MuxListenerOut, error) {
 	p, err := gostream.Listen(h, p2pgrpc.Protocol)
