@@ -9,10 +9,10 @@ require (
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hsanjuan/ipfs-lite v1.1.18
+	github.com/hsanjuan/ipfs-lite v1.2.0
 	github.com/ipfs/go-blockservice v0.2.1
 	github.com/ipfs/go-cid v0.1.0
-	github.com/ipfs/go-datastore v0.5.0
+	github.com/ipfs/go-datastore v0.5.1
 	github.com/ipfs/go-ds-flatfs v0.5.0
 	github.com/ipfs/go-ds-leveldb v0.5.0
 	github.com/ipfs/go-ipfs-blockstore v1.1.1
@@ -25,12 +25,11 @@ require (
 	github.com/libp2p/go-libp2p-discovery v0.6.0
 	github.com/libp2p/go-libp2p-gostream v0.3.1
 	github.com/libp2p/go-libp2p-pubsub v0.6.0
-	github.com/libp2p/go-libp2p-quic-transport v0.15.0
 	github.com/libp2p/go-libp2p-tls v0.3.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/moxiaomomo/grpc-jaeger v0.0.0-20180617090213-05b879580c4a
 	github.com/multiformats/go-multiaddr v0.4.1
-	github.com/opentracing-contrib/go-stdlib v1.0.0 // indirect
+	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/plexsysio/ants-db v0.0.5-0.20211128140316-e6220c9cd405
 	github.com/plexsysio/dLocker v0.0.3-0.20211128192511-fcfcafab3562
@@ -45,5 +44,3 @@ require (
 	go.uber.org/fx v1.10.0
 	google.golang.org/grpc v1.42.0
 )
-
-replace github.com/hsanjuan/ipfs-lite => github.com/plexsysio/ipfs-lite v1.1.22-0.20211128135214-3d31c70fbf56

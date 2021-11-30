@@ -49,7 +49,6 @@ var Libp2pOptionsExtra = []libp2p.Option{
 	libp2p.EnableAutoRelay(),
 	libp2p.EnableNATService(),
 	libp2p.Security(libp2ptls.ID, libp2ptls.New),
-	libp2p.DefaultTransports,
 }
 
 func Libp2p(
