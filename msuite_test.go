@@ -113,6 +113,15 @@ func MustSharedStorage(t *testing.T, m core.Service, exists bool) {
 	}
 }
 
+func MustFiles(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Files()
+	if err == nil && !exists {
+		t.Fatal("expected error accessing files")
+	}
+}
+
 func TestBasicNew(t *testing.T) {
 	defer os.RemoveAll("tmp")
 	app, err := msuite.New(msuite.WithRepositoryRoot("tmp"))
@@ -194,6 +203,7 @@ func TestNode(t *testing.T) {
 	MustLocker(t, app, false)
 	MustJWT(t, app, false)
 	MustACL(t, app, false)
+	MustFiles(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
@@ -243,6 +253,7 @@ func TestGRPCLockerAuth(t *testing.T) {
 	app, err := msuite.New(
 		msuite.WithRepositoryRoot("tmp4"),
 		msuite.WithP2PPort(10000),
+		msuite.WithFiles(),
 		msuite.WithGRPC(),
 		msuite.WithGRPCTCPListener(10001),
 		msuite.WithLocker("inmem", nil),
@@ -265,6 +276,7 @@ func TestGRPCLockerAuth(t *testing.T) {
 	MustACL(t, app, true)
 	MustHTTP(t, app, false)
 	MustSharedStorage(t, app, true)
+	MustFiles(t, app, true)
 
 	err = app.Start(context.Background())
 	if err != nil {

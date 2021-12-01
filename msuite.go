@@ -148,6 +148,12 @@ func WithDebug() Option {
 	}
 }
 
+func WithFiles() Option {
+	return func(c *BuildCfg) {
+		c.startupCfg.Set("UseFiles", true)
+	}
+}
+
 func defaultOpts(c *BuildCfg) {
 	if !c.startupCfg.Exists("Services") {
 		c.startupCfg.Set("Services", []string{"msuite"})

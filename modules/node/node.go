@@ -92,7 +92,8 @@ func New(bCfg config.Config) (core.Service, error) {
 		utils.MaybeProvide(metrics.NewTracer, bCfg.IsSet("UseTracing")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
 		authModule(r.Config()),
-		utils.MaybeOption(ipfs.Module, bCfg.IsSet("UseP2P")),
+		utils.MaybeOption(ipfs.P2PModule, bCfg.IsSet("UseP2P")),
+		utils.MaybeOption(ipfs.FilesModule, bCfg.IsSet("UseP2P") && bCfg.IsSet("UseFiles")),
 		utils.MaybeOption(grpcsvc.Module(r.Config()), bCfg.IsSet("UseGRPC")),
 		mhttp.Module(r.Config()),
 		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
@@ -178,9 +179,12 @@ func (s *impl) Pubsub() *pubsub.PubSub {
 	return s.Ps
 }
 
-// IPFS API
-func (s *impl) IPFS() *ipfslite.Peer {
-	return s.P
+// Files API
+func (s *impl) Files() (*ipfslite.Peer, error) {
+	if s.P == nil {
+		return nil, errors.New("Files service not configured")
+	}
+	return s.P, nil
 }
 
 // Auth API

@@ -31,7 +31,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.4.1
 	github.com/opentracing-contrib/go-stdlib v1.0.0
 	github.com/opentracing/opentracing-go v1.2.0
-	github.com/plexsysio/ants-db v0.0.5-0.20211128140316-e6220c9cd405
+	github.com/plexsysio/ants-db v0.0.5-0.20211201140042-92d3c0524c87
 	github.com/plexsysio/dLocker v0.0.3-0.20211128192511-fcfcafab3562
 	github.com/plexsysio/gkvstore v0.0.0-20211118085618-aa2812d0ec8d
 	github.com/plexsysio/gkvstore-ipfsds v0.0.0-20211128070946-4089eab5b669
