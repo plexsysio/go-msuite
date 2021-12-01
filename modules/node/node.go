@@ -28,6 +28,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/node/locker"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
+	"github.com/plexsysio/go-msuite/modules/repo/inmem"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/go-msuite/utils"
 	"github.com/plexsysio/taskmanager"
@@ -51,9 +52,20 @@ var authModule = func(c config.Config) fx.Option {
 }
 
 func New(bCfg config.Config) (core.Service, error) {
-	r, err := fsrepo.CreateOrOpen(bCfg)
-	if err != nil {
-		return nil, err
+	var (
+		r   repo.Repo
+		err error
+	)
+	if bCfg.Get("RootPath", new(string)) {
+		r, err = fsrepo.CreateOrOpen(bCfg)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		r, err = inmem.CreateOrOpen(bCfg)
+		if err != nil {
+			return nil, err
+		}
 	}
 	svc := &impl{}
 

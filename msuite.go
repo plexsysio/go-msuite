@@ -3,12 +3,10 @@ package msuite
 import (
 	"context"
 	"encoding/base64"
-	"path/filepath"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
-	"github.com/mitchellh/go-homedir"
 	"github.com/plexsysio/go-msuite/core"
 	"github.com/plexsysio/go-msuite/modules/config"
 	jsonConf "github.com/plexsysio/go-msuite/modules/config/json"
@@ -166,13 +164,6 @@ func defaultOpts(c *BuildCfg) {
 	}
 	c.startupCfg.Set("Services", services)
 
-	if !c.startupCfg.Exists("RootPath") {
-		hd, err := homedir.Dir()
-		if err != nil {
-			panic("Unable to determine home directory")
-		}
-		c.startupCfg.Set("RootPath", filepath.Join(hd, ".msuite"))
-	}
 	if c.startupCfg.IsSet("UseP2P") || c.startupCfg.IsSet("UseTCP") || c.startupCfg.IsSet("UseHTTP") {
 		tmCfg := map[string]int{}
 		found := c.startupCfg.Get("TMWorkers", &tmCfg)
