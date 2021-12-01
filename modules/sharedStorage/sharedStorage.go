@@ -1,16 +1,9 @@
 package sharedStorage
 
 import (
-	"context"
-
-	ipfslite "github.com/hsanjuan/ipfs-lite"
-	"github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-cid"
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/namespace"
-	blockstore "github.com/ipfs/go-ipfs-blockstore"
-	ipld "github.com/ipfs/go-ipld-format"
-	"github.com/ipfs/go-merkledag"
+	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	antsdb "github.com/plexsysio/ants-db"
 	store "github.com/plexsysio/gkvstore"
@@ -27,55 +20,36 @@ type Provider interface {
 
 func NewSharedStoreProvider(
 	ds datastore.Batching,
-	peer *ipfslite.Peer,
+	h host.Host,
+	dht routing.Routing,
 	ps *pubsub.PubSub,
 ) Provider {
 	return &impl{
-		p:  peer,
-		ds: ds,
-		ps: ps,
+		h:   h,
+		dht: dht,
+		ds:  ds,
+		ps:  ps,
 	}
 }
 
 type impl struct {
-	p  *ipfslite.Peer
-	ps *pubsub.PubSub
-	ds datastore.Batching
+	h   host.Host
+	dht routing.Routing
+	ps  *pubsub.PubSub
+	ds  datastore.Batching
 }
 
 func (i *impl) SharedStorage(ns string, callback Callback) (store.Store, error) {
-	nsk := datastore.NewKey(ns)
-	ds := namespace.Wrap(i.ds, nsk)
-	bs := blockstore.NewBlockstore(ds)
-
-	syncer := &nsSyncer{
-		DAGService: merkledag.NewDAGService(blockservice.New(bs, i.p.Exchange())),
-		bs:         bs,
-	}
-
 	opts := []antsdb.Option{antsdb.WithChannel(ns)}
 	if callback != nil {
 		opts = append(opts, antsdb.WithSubscriber(callback))
 	}
 
 	return antsdb.New(
-		syncer,
+		i.h,
+		i.dht,
 		i.ps,
 		i.ds,
 		opts...,
 	)
-}
-
-type nsSyncer struct {
-	ipld.DAGService
-
-	bs blockstore.Blockstore
-}
-
-func (n *nsSyncer) HasBlock(c cid.Cid) (bool, error) {
-	return n.bs.Has(context.TODO(), c)
-}
-
-func (n *nsSyncer) Session(ctx context.Context) ipld.NodeGetter {
-	return merkledag.NewSession(ctx, n.DAGService)
 }

@@ -35,12 +35,12 @@ type Service interface {
 	Locker() (dLocker.DLocker, error)
 	Events() (events.Events, error)
 	SharedStorage(string, sharedStorage.Callback) (store.Store, error)
+	Files() (*ipfslite.Peer, error)
 }
 
 type Node interface {
 	P2P() P2P
 	Pubsub() *pubsub.PubSub
-	IPFS() *ipfslite.Peer
 }
 
 type P2P interface {

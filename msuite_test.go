@@ -113,6 +113,15 @@ func MustSharedStorage(t *testing.T, m core.Service, exists bool) {
 	}
 }
 
+func MustFiles(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Files()
+	if err == nil && !exists {
+		t.Fatal("expected error accessing files")
+	}
+}
+
 func TestBasicNew(t *testing.T) {
 	defer os.RemoveAll("tmp")
 	app, err := msuite.New(msuite.WithRepositoryRoot("tmp"))
@@ -143,9 +152,7 @@ func TestBasicNew(t *testing.T) {
 }
 
 func TestTM(t *testing.T) {
-	defer os.RemoveAll("tmp1")
 	app, err := msuite.New(
-		msuite.WithRepositoryRoot("tmp1"),
 		msuite.WithTaskManager(5, 100),
 	)
 	if err != nil {
@@ -175,9 +182,7 @@ func TestTM(t *testing.T) {
 }
 
 func TestNode(t *testing.T) {
-	defer os.RemoveAll("tmp2")
 	app, err := msuite.New(
-		msuite.WithRepositoryRoot("tmp2"),
 		msuite.WithP2PPort(10000),
 	)
 	if err != nil {
@@ -194,6 +199,7 @@ func TestNode(t *testing.T) {
 	MustLocker(t, app, false)
 	MustJWT(t, app, false)
 	MustACL(t, app, false)
+	MustFiles(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
@@ -239,10 +245,9 @@ func TestHTTP(t *testing.T) {
 }
 
 func TestGRPCLockerAuth(t *testing.T) {
-	defer os.RemoveAll("tmp4")
 	app, err := msuite.New(
-		msuite.WithRepositoryRoot("tmp4"),
 		msuite.WithP2PPort(10000),
+		msuite.WithFiles(),
 		msuite.WithGRPC(),
 		msuite.WithGRPCTCPListener(10001),
 		msuite.WithLocker("inmem", nil),
@@ -265,6 +270,7 @@ func TestGRPCLockerAuth(t *testing.T) {
 	MustACL(t, app, true)
 	MustHTTP(t, app, false)
 	MustSharedStorage(t, app, true)
+	MustFiles(t, app, true)
 
 	err = app.Start(context.Background())
 	if err != nil {
@@ -353,7 +359,6 @@ func TestPrivateKey(t *testing.T) {
 
 func TestServices(t *testing.T) {
 	defer os.RemoveAll("tmp5")
-	defer os.RemoveAll("tmp6")
 
 	app, err := msuite.New(
 		msuite.WithServiceName("test"),
@@ -375,7 +380,6 @@ func TestServices(t *testing.T) {
 
 	app, err = msuite.New(
 		msuite.WithServiceName("test"),
-		msuite.WithRepositoryRoot("tmp6"),
 		msuite.WithGRPCTCPListener(10000),
 		msuite.WithHTTP(10001),
 		msuite.WithPrometheus(true),
