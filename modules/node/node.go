@@ -67,6 +67,13 @@ func New(bCfg config.Config) (core.Service, error) {
 			return nil, err
 		}
 	}
+
+	// if the repo was initialized, the passed config has been saved in it and hence
+	// it should return the same values. if the repo was already initialized, this
+	// would get the saved config. This allows for node to be started with just the
+	// root path
+	bCfg = r.Config()
+
 	svc := &impl{}
 
 	var tmCfg map[string]int

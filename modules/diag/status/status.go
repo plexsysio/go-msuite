@@ -51,7 +51,7 @@ func New(
 }
 
 func RegisterHTTP(m Manager, mux *http.ServeMux) {
-	mux.HandleFunc("/v1/status", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		buf, err := json.MarshalIndent(m.Status(), "", "\t")
 		if err != nil {
 			http.Error(w, "Failed to get status Err:"+err.Error(),
