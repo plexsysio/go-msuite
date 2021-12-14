@@ -28,7 +28,7 @@ type Mux struct {
 	connChan  chan net.Conn
 	wg        sync.WaitGroup
 	statusMtx sync.Mutex
-	status    map[string]interface{}
+	status    map[string]string
 }
 
 func New(
@@ -43,7 +43,7 @@ func New(
 		listeners: listeners,
 		tm:        tm,
 		connChan:  make(chan net.Conn, 50),
-		status:    make(map[string]interface{}),
+		status:    make(map[string]string),
 	}
 	for _, v := range listeners {
 		m.updateStatus(v.Tag, "not running")
