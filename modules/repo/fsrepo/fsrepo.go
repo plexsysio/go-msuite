@@ -282,3 +282,15 @@ func (f *fsRepo) close() error {
 	f.rootDS = nil
 	return err.ErrorOrNil()
 }
+
+func (f *fsRepo) Status() interface{} {
+	ds, ok := f.rootDS.(Datastore)
+	if !ok {
+		return "Invalid datastore"
+	}
+	mntInfo, err := ds.Mounts()
+	if err != nil {
+		return "Invalid mount info"
+	}
+	return map[string]interface{}{"On-disk Mounts": mntInfo}
+}

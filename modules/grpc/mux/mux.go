@@ -2,9 +2,13 @@ package grpcmux
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net"
+	"sync"
+	"time"
 
+	"github.com/hashicorp/go-multierror"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/taskmanager"
 )
@@ -22,6 +26,9 @@ type Mux struct {
 	listeners []MuxListener
 	tm        *taskmanager.TaskManager
 	connChan  chan net.Conn
+	wg        sync.WaitGroup
+	statusMtx sync.Mutex
+	status    map[string]string
 }
 
 func New(
@@ -36,28 +43,50 @@ func New(
 		listeners: listeners,
 		tm:        tm,
 		connChan:  make(chan net.Conn, 50),
+		status:    make(map[string]string),
+	}
+	for _, v := range listeners {
+		m.updateStatus(v.Tag, "not running")
 	}
 	return m
 }
 
-func (m *Mux) Start(ctx context.Context, reportError func(string, error)) {
-	for _, v := range m.listeners {
+func (m *Mux) updateStatus(key, value string) {
+	m.statusMtx.Lock()
+	defer m.statusMtx.Unlock()
+
+	m.status[key] = value
+}
+
+func (m *Mux) Status() interface{} {
+	m.statusMtx.Lock()
+	defer m.statusMtx.Unlock()
+
+	return m.status
+}
+
+func (m *Mux) Start(ctx context.Context) {
+	for i := range m.listeners {
 		l := &muxListener{
-			tag:      v.Tag,
-			listener: v.Listener,
+			tag:      m.listeners[i].Tag,
+			listener: m.listeners[i].Listener,
 			connChan: m.connChan,
-			reportErr: func(err error) {
-				if reportError != nil {
-					reportError(v.Tag, err)
-				}
+			reportErr: func(k string, err error) {
+				m.updateStatus(k, "failed with err: "+err.Error())
 			},
 		}
-		sched, err := m.tm.Go(l)
+		m.wg.Add(1)
+		sched, err := m.tm.GoFunc(l.Name(), func(c context.Context) error {
+			defer m.wg.Done()
+			return l.Execute(c)
+		})
 		if err != nil {
-			reportError(v.Tag, err)
+			m.updateStatus(m.listeners[i].Tag, "failed to start err: "+err.Error())
+			continue
 		}
 		select {
 		case <-sched:
+			m.updateStatus(m.listeners[i].Tag, "running")
 		case <-ctx.Done():
 			return
 		}
@@ -76,20 +105,28 @@ func (m *Mux) Accept() (net.Conn, error) {
 }
 
 func (m *Mux) Close() error {
-	log.Info("Closing listeners")
-	errs := []error{}
+	stopped := make(chan struct{})
+	go func() {
+		m.wg.Wait()
+		close(stopped)
+	}()
+
+	m.muxCancel()
+	var err *multierror.Error
 	for _, l := range m.listeners {
-		err := l.Listener.Close()
-		if err != nil {
-			errs = append(errs, err)
+		e := l.Listener.Close()
+		if e != nil {
+			err = multierror.Append(err, e)
 		}
 	}
-	log.Info("Closing Mux")
-	m.muxCancel()
-	if len(errs) > 0 {
-		return errs[0]
+
+	select {
+	case <-stopped:
+	case <-time.After(3 * time.Second):
+		err = multierror.Append(err, errors.New("failed to stop listeners"))
 	}
-	return nil
+
+	return err.ErrorOrNil()
 }
 
 func (m *Mux) Addr() net.Addr {
@@ -103,7 +140,7 @@ type muxListener struct {
 	tag       string
 	listener  net.Listener
 	connChan  chan<- net.Conn
-	reportErr func(error)
+	reportErr func(string, error)
 }
 
 func (m *muxListener) Name() string {
@@ -115,7 +152,7 @@ func (m *muxListener) Execute(ctx context.Context) error {
 		conn, err := m.listener.Accept()
 		if err != nil {
 			log.Error("Failed accepting new connection from listener", m.tag, err.Error())
-			m.reportErr(err)
+			m.reportErr(m.tag, err)
 			return err
 		}
 		select {

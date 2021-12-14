@@ -15,6 +15,18 @@ func TestInmemRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		if r.Datastore() == nil {
+			t.Fatal("datastore not found")
+		}
+
+		if r.Store() == nil {
+			t.Fatal("store not found")
+		}
+
+		if r.Status().(string) != "In-mem repository" {
+			t.Fatal("invalid status")
+		}
+
 		err = r.Close()
 		if err != nil {
 			t.Fatal(err)
@@ -48,6 +60,18 @@ func TestInmemRepo(t *testing.T) {
 
 		if reflect.DeepEqual(cfg4, cfg) {
 			t.Fatal("expected config to be different")
+		}
+
+		if r.Datastore() == nil {
+			t.Fatal("datastore not found")
+		}
+
+		if r.Store() == nil {
+			t.Fatal("store not found")
+		}
+
+		if r.Status().(string) != "In-mem repository" {
+			t.Fatal("invalid status")
 		}
 
 		err = r.Close()

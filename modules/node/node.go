@@ -76,9 +76,6 @@ func New(bCfg config.Config) (core.Service, error) {
 
 	svc := &impl{}
 
-	var tmCfg map[string]int
-	found := bCfg.Get("TMWorkers", &tmCfg)
-
 	app := fx.New(
 		fx.Logger(&FxLog{}),
 		fx.Provide(func() (context.Context, context.CancelFunc) {
@@ -94,19 +91,8 @@ func New(bCfg config.Config) (core.Service, error) {
 			})
 			return r, r.Config(), r.Datastore()
 		}),
-		utils.MaybeProvide(func(ctx context.Context, lc fx.Lifecycle) *taskmanager.TaskManager {
-			tm := taskmanager.New(tmCfg["Min"], tmCfg["Max"], time.Second*15)
-			lc.Append(fx.Hook{
-				OnStop: func(c context.Context) error {
-					log.Debugf("stopping taskmanager")
-					defer log.Debugf("stopped taskmanager")
-					tm.Stop()
-					return nil
-				},
-			})
-			return tm
-		}, found),
-		utils.MaybeProvide(status.New, found),
+		fx.Provide(NewTaskManager),
+		fx.Provide(status.New),
 		utils.MaybeProvide(metrics.New, bCfg.IsSet("UsePrometheus")),
 		utils.MaybeProvide(metrics.NewTracer, bCfg.IsSet("UseTracing")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
@@ -126,11 +112,57 @@ func New(bCfg config.Config) (core.Service, error) {
 				},
 			})
 		}),
+		fx.Invoke(func(c config.Config, tm *taskmanager.TaskManager, st status.Manager) {
+			st.AddReporter("Repository", r)
+			st.AddReporter("TaskManager", &tmReporter{tm})
+			st.AddReporter("Services", &svcsReporter{c})
+		}),
 		fx.Populate(svc),
 	)
 
 	svc.App = app
 	return svc, nil
+}
+
+func NewTaskManager(lc fx.Lifecycle, cfg config.Config) (*taskmanager.TaskManager, error) {
+	tmCfg := map[string]int{}
+	found := cfg.Get("TMWorkers", &tmCfg)
+	if !found {
+		tmCfg["Min"] = 0
+		tmCfg["Max"] = 20
+	}
+	if tmCfg["Max"] <= 0 {
+		return nil, errors.New("invalid config for taskmanager workers")
+	}
+	tm := taskmanager.New(tmCfg["Min"], tmCfg["Max"], time.Second*15)
+	lc.Append(fx.Hook{
+		OnStop: func(c context.Context) error {
+			log.Debugf("stopping taskmanager")
+			defer log.Debugf("stopped taskmanager")
+			tm.Stop()
+			return nil
+		},
+	})
+	return tm, nil
+}
+
+type tmReporter struct {
+	tm *taskmanager.TaskManager
+}
+
+func (t *tmReporter) Status() interface{} { return t.tm.Status() }
+
+type svcsReporter struct {
+	c config.Config
+}
+
+func (s *svcsReporter) Status() interface{} {
+	var svcs []string
+	found := s.c.Get("Services", &svcs)
+	if !found {
+		return "no services configured"
+	}
+	return svcs
 }
 
 type impl struct {

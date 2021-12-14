@@ -16,5 +16,6 @@ type Repo interface {
 
 	Store() store.Store
 
+	Status() interface{}
 	io.Closer
 }

@@ -130,10 +130,10 @@ func TestBasicNew(t *testing.T) {
 	}
 
 	MustRepo(t, app, true)
+	MustTM(t, app, true)
 	MustNode(t, app, false)
 	MustGRPC(t, app, false)
 	MustHTTP(t, app, false)
-	MustTM(t, app, false)
 	MustLocker(t, app, false)
 	MustEvents(t, app, false)
 	MustJWT(t, app, false)
@@ -383,6 +383,7 @@ func TestServices(t *testing.T) {
 		msuite.WithGRPCTCPListener(10000),
 		msuite.WithHTTP(10001),
 		msuite.WithPrometheus(true),
+		msuite.WithDebug(),
 		msuite.WithStaticDiscovery(map[string]string{
 			"svc1": "IP1",
 			"svc2": "IP2",

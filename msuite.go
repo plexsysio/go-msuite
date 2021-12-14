@@ -167,26 +167,12 @@ func defaultOpts(c *BuildCfg) {
 	if c.startupCfg.IsSet("UseP2P") || c.startupCfg.IsSet("UseTCP") || c.startupCfg.IsSet("UseHTTP") {
 		tmCfg := map[string]int{}
 		found := c.startupCfg.Get("TMWorkers", &tmCfg)
-		if !found {
-			tmCfg = map[string]int{
-				"Min": 0,
-				"Max": 0,
+		if found {
+			if tmCfg["Max"] < 20 {
+				tmCfg["Max"] += 20
 			}
+			c.startupCfg.Set("TMWorkers", tmCfg)
 		}
-		tmCfg["Min"] += 1
-		if c.startupCfg.IsSet("UseTCP") {
-			tmCfg["Min"] += 1
-		}
-		if c.startupCfg.IsSet("UseP2P") {
-			tmCfg["Min"] += 2
-		}
-		if c.startupCfg.IsSet("UseHTTP") {
-			tmCfg["Min"] += 1
-		}
-		if tmCfg["Max"] < tmCfg["Min"] {
-			tmCfg["Max"] = 2 * tmCfg["Min"]
-		}
-		c.startupCfg.Set("TMWorkers", tmCfg)
 	}
 }
 

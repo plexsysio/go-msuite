@@ -3,6 +3,7 @@ package grpcmux_test
 import (
 	"context"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -51,7 +52,24 @@ func TestMultipleListeners(t *testing.T) {
 		tm,
 	)
 
-	m.Start(context.TODO(), nil)
+	checkStatus := func(k, v string) {
+		t.Helper()
+
+		found := m.Status().(map[string]string)[k]
+		if !strings.Contains(found, v) {
+			t.Fatalf("unexpected status value expected %s found %s", v, found)
+		}
+	}
+
+	checkStatus("1", "not running")
+	checkStatus("2", "not running")
+	checkStatus("3", "not running")
+
+	m.Start(context.TODO())
+
+	checkStatus("1", "running")
+	checkStatus("2", "running")
+	checkStatus("3", "running")
 
 	connChan := make(chan net.Conn)
 
@@ -107,4 +125,8 @@ func TestMultipleListeners(t *testing.T) {
 	case <-time.After(time.Second * 3):
 		t.Fatal("waited 3 secs for done")
 	}
+
+	checkStatus("1", "failed")
+	checkStatus("2", "failed")
+	checkStatus("3", "failed")
 }
