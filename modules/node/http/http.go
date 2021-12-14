@@ -44,6 +44,20 @@ func NewGRPCGateway() *runtime.ServeMux {
 	return runtime.NewServeMux()
 }
 
+type httpReporter struct {
+	port    int
+	stopped chan struct{}
+}
+
+func (h *httpReporter) Status() interface{} {
+	select {
+	case <-h.stopped:
+		return "stopped"
+	default:
+	}
+	return fmt.Sprintf("running on port %d", h.port)
+}
+
 func NewHTTPServer(
 	lc fx.Lifecycle,
 	c config.Config,
@@ -65,20 +79,18 @@ func NewHTTPServer(
 	httpServer := &nhttp.Server{Addr: fmt.Sprintf(":%d", httpPort), Handler: rootHandler}
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
+			stopped := make(chan struct{})
 			go func() {
 				log.Info("Starting http server")
 				err := httpServer.ListenAndServe()
 				if err != nil {
 					log.Error("http server stopped ", err)
-					st.Report("HTTP Server",
-						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
 				}
 			}()
-			st.Report("HTTP Server", status.String(fmt.Sprintf("Running on port %d", httpPort)))
+			st.AddReporter("HTTP Server", &httpReporter{port: httpPort, stopped: stopped})
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			defer st.Report("HTTP Server", status.String("Stopped"))
 			return httpServer.Shutdown(ctx)
 		},
 	})

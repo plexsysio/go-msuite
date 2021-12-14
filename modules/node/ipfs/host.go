@@ -20,6 +20,7 @@ import (
 	libp2ptls "github.com/libp2p/go-libp2p-tls"
 	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/plexsysio/go-msuite/modules/config"
+	"github.com/plexsysio/go-msuite/modules/diag/status"
 )
 
 func Identity(conf config.Config) (crypto.PrivKey, error) {
@@ -99,4 +100,22 @@ func Pubsub(ctx context.Context, h host.Host) (*pubsub.PubSub, error) {
 
 func NewSvcDiscovery(r routing.Routing) discovery.Discovery {
 	return p2pdiscovery.NewRoutingDiscovery(r)
+}
+
+func NewP2PReporter(h host.Host, st status.Manager) {
+	st.AddReporter("P2P Service", &p2pReporter{h: h})
+}
+
+type p2pReporter struct {
+	h host.Host
+}
+
+func (p *p2pReporter) Status() interface{} {
+	stat := make(map[string]interface{})
+
+	stat["ID"] = p.h.ID()
+	stat["Addrs"] = p.h.Addrs()
+	stat["Peers"] = p.h.Network().Peers()
+
+	return stat
 }

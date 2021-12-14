@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -11,10 +13,13 @@ import (
 	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
 	"google.golang.org/grpc"
-	"time"
 )
 
 var log = logger.Logger("grpc/client")
+
+const discoveryTTL = 15 * time.Minute
+
+var ErrNoPeerForSvc = errors.New("failed to find any usable peer for service")
 
 type ClientSvc interface {
 	Get(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error)
@@ -60,25 +65,17 @@ func (d *discoveryProvider) Name() string {
 
 func (d *discoveryProvider) Execute(ctx context.Context) error {
 	for {
-		var (
-			startTTL time.Duration
-			err      error
-		)
-		started := time.Now()
-		for i, svc := range d.services {
-			log.Infof("Advertising service: %s", svc)
-			ttl, e := d.ds.Advertise(ctx, svc, discovery.TTL(time.Minute*15))
-			if e != nil {
-				err = fmt.Errorf("error advertising %s: %w", svc, e)
+		var err error
+		for _, svc := range d.services {
+			log.Debugf("Advertising service: %s", svc)
+			_, err = d.ds.Advertise(ctx, svc, discovery.TTL(discoveryTTL))
+			if err != nil {
+				err = fmt.Errorf("error advertising %s: %w", svc, err)
 				break
-			}
-			// Use TTL of first advertisement for wait in the next part
-			if i == 0 {
-				startTTL = ttl
 			}
 		}
 		if err != nil {
-			log.Debug(err.Error())
+			log.Errorf("error advertising %v", err)
 			select {
 			case <-time.After(time.Minute * 2):
 				continue
@@ -86,18 +83,11 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 				return nil
 			}
 		}
-		// Time to wait needs to obey TTL of the first service advertised.
-		// If the operation takes time and we wait for all services to advertise, initial
-		// services might not get advertised.
-		ttl := startTTL - time.Since(started)
-		if ttl <= 0 {
-			ttl = startTTL
-		}
-		wait := 7 * ttl / 8
+		wait := 7 * discoveryTTL / 8
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():
-			log.Info("Stopping advertiser")
+			log.Info("stopping advertiser")
 			return nil
 		}
 	}
@@ -113,24 +103,34 @@ func (c *clientImpl) Get(
 	svc string,
 	opts ...grpc.DialOption,
 ) (*grpc.ClientConn, error) {
-	p, err := c.ds.FindPeers(ctx, svc, discovery.Limit(1))
+
+	// FindPeers is called without limit opt, so this cancel is required to release
+	// any resources used by it
+	cCtx, cCancel := context.WithCancel(ctx)
+	defer cCancel()
+
+	p, err := c.ds.FindPeers(cCtx, svc)
 	if err != nil {
 		return nil, err
 	}
-	select {
-	case <-time.After(time.Second * 10):
-		return nil, errors.New("unable to find peer for service " + svc)
-	case pAddr, ok := <-p:
-		if ok {
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case pAddr, more := <-p:
+			if !more {
+				return nil, ErrNoPeerForSvc
+			}
 			err = c.h.Connect(ctx, pAddr)
 			if err != nil {
-				return nil, fmt.Errorf("failed to connect to peer %v", pAddr)
+				log.Errorf("failed to connect to peer %v err %v", pAddr, err)
+				continue
 			}
-			log.Infof("Connected to peer %v for service %s", pAddr, svc)
+			log.Debugf("connected to peer %v for service %s", pAddr, svc)
 			return p2pgrpc.NewP2PDialer(c.h).Dial(ctx, pAddr.ID.String(), opts...)
 		}
 	}
-	return nil, errors.New("invalid address received for peer")
 }
 
 func NewStaticClientService(c config.Config) ClientSvc {

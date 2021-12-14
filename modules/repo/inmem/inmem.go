@@ -79,3 +79,7 @@ func (i *inmemRepo) Close() error {
 	i.st.Close()
 	return nil
 }
+
+func (i *inmemRepo) Status() interface{} {
+	return "In-mem repository"
+}

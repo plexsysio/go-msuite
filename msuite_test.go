@@ -130,10 +130,10 @@ func TestBasicNew(t *testing.T) {
 	}
 
 	MustRepo(t, app, true)
+	MustTM(t, app, true)
 	MustNode(t, app, false)
 	MustGRPC(t, app, false)
 	MustHTTP(t, app, false)
-	MustTM(t, app, false)
 	MustLocker(t, app, false)
 	MustEvents(t, app, false)
 	MustJWT(t, app, false)

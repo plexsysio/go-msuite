@@ -2,13 +2,13 @@ package grpcsvc
 
 import (
 	"context"
-	"fmt"
-	"github.com/grpc-ecosystem/go-grpc-middleware"
+
+	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
-	"github.com/plexsysio/go-msuite/modules/grpc/client"
-	"github.com/plexsysio/go-msuite/modules/grpc/mux"
+	grpcclient "github.com/plexsysio/go-msuite/modules/grpc/client"
+	grpcmux "github.com/plexsysio/go-msuite/modules/grpc/mux"
 	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
@@ -21,7 +21,20 @@ type GrpcServerParams struct {
 
 	Opts      []grpc.ServerOption
 	Listnr    *grpcmux.Mux
-	StManager status.Manager `optional:"true"`
+	StManager status.Manager
+}
+
+type grpcReporter struct {
+	stopped chan struct{}
+}
+
+func (s *grpcReporter) Status() interface{} {
+	select {
+	case <-s.stopped:
+		return "stopped"
+	default:
+	}
+	return "running"
 }
 
 func New(
@@ -31,20 +44,19 @@ func New(
 	rpcSrv := grpc.NewServer(params.Opts...)
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
+			stopped := make(chan struct{})
 			go func() {
+				defer close(stopped)
 				log.Info("Starting GRPC server")
 				err := rpcSrv.Serve(params.Listnr)
 				if err != nil {
 					log.Error("Failed to serve gRPC", err.Error())
-					params.StManager.Report("GRPC server",
-						status.String(fmt.Sprintf("Failed Err:%s", err.Error())))
 				}
 			}()
-			params.StManager.Report("GRPC server", status.String("Running"))
+			params.StManager.AddReporter("GRPC Server", &grpcReporter{stopped: stopped})
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			defer params.StManager.Report("GRPC server", status.String("Stopped"))
 			log.Info("Stopping GRPC server")
 			rpcSrv.Stop()
 			return nil

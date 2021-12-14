@@ -10,6 +10,7 @@ var P2PModule = fx.Options(
 	fx.Provide(Pubsub),
 	fx.Provide(NewSvcDiscovery),
 	fx.Invoke(NewMDNSDiscovery),
+	fx.Invoke(NewP2PReporter),
 )
 
 var FilesModule = fx.Provide(NewNode)
