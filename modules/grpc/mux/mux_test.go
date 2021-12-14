@@ -55,7 +55,7 @@ func TestMultipleListeners(t *testing.T) {
 	checkStatus := func(k, v string) {
 		t.Helper()
 
-		found := m.Status()[k].(string)
+		found := m.Status().(map[string]string)[k]
 		if !strings.Contains(found, v) {
 			t.Fatalf("unexpected status value expected %s found %s", v, found)
 		}
