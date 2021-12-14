@@ -80,6 +80,6 @@ func (i *inmemRepo) Close() error {
 	return nil
 }
 
-func (i *inmemRepo) Status() interface{} {
+func (*inmemRepo) Status() interface{} {
 	return "In-mem repository"
 }
