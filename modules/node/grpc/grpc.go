@@ -47,6 +47,7 @@ func New(
 			stopped := make(chan struct{})
 			go func() {
 				defer close(stopped)
+
 				log.Info("Starting GRPC server")
 				err := rpcSrv.Serve(params.Listnr)
 				if err != nil {

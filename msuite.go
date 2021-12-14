@@ -169,7 +169,7 @@ func defaultOpts(c *BuildCfg) {
 		found := c.startupCfg.Get("TMWorkers", &tmCfg)
 		if found {
 			if tmCfg["Max"] < 20 {
-				tmCfg["Max"] = 20
+				tmCfg["Max"] += 20
 			}
 			c.startupCfg.Set("TMWorkers", tmCfg)
 		}

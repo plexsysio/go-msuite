@@ -81,6 +81,8 @@ func NewHTTPServer(
 		OnStart: func(ctx context.Context) error {
 			stopped := make(chan struct{})
 			go func() {
+				defer close(stopped)
+
 				log.Info("Starting http server")
 				err := httpServer.ListenAndServe()
 				if err != nil {
