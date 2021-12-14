@@ -383,6 +383,7 @@ func TestServices(t *testing.T) {
 		msuite.WithGRPCTCPListener(10000),
 		msuite.WithHTTP(10001),
 		msuite.WithPrometheus(true),
+		msuite.WithDebug(),
 		msuite.WithStaticDiscovery(map[string]string{
 			"svc1": "IP1",
 			"svc2": "IP2",

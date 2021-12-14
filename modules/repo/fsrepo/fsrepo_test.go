@@ -124,23 +124,29 @@ func TestRepo(t *testing.T) {
 		t.Fatal("expected to find mounted datastore")
 	}
 
+	verifyMounts := func(mnts []fsrepo.MountInfo) {
+		if len(mnts) != 2 {
+			t.Fatal("expected 2 mounts found", len(mnts))
+		}
+
+		for _, v := range mnts {
+			if v.Path != ".testrepo/kv" && v.Path != ".testrepo/blocks" {
+				t.Fatal("unexpected paths", v.Path)
+			}
+			if v.Prefix != "/" && v.Prefix != "/blocks" {
+				t.Fatal("unexpected prefixes", v.Prefix)
+			}
+		}
+	}
+
 	mntInfo, err := mds.Mounts()
 	if err != nil {
 		t.Fatal(err)
 	}
+	verifyMounts(mntInfo)
 
-	if len(mntInfo) != 2 {
-		t.Fatal("expected 2 mounts found", len(mntInfo))
-	}
-
-	for _, v := range mntInfo {
-		if v.Path != ".testrepo/kv" && v.Path != ".testrepo/blocks" {
-			t.Fatal("unexpected paths", v.Path)
-		}
-		if v.Prefix != "/" && v.Prefix != "/blocks" {
-			t.Fatal("unexpected prefixes", v.Prefix)
-		}
-	}
+	mntInfo2 := r.Status().(map[string]interface{})["On-disk Mounts"].([]fsrepo.MountInfo)
+	verifyMounts(mntInfo2)
 
 	cfg.Set("TestAdd", "some value")
 	err = r.SetConfig(cfg)
