@@ -32,11 +32,11 @@ For the public API please go through the `core` package
    - Access control is also present. Users can configure their APIs/Services to start using ACLs. These can be updated/removed etc.
 
 - Storage and SharedStorage
-   - Currently a simple key-value store is available to all the services. This store uses a very simple ORM-like interface [ss-store](https://github.com/SWRMLabs/ss-store) which allows users to define how they want to store the objects into the store. Different implementations can be added here in future.
+   - Currently a simple key-value store is available to all the services. This store uses a very generic K-V store interface [gkvstore](https://github.com/plexsysio/gkvstore) which allows users to define how they want to store the objects into the store. Different implementations can be added here in future.
    - Using IPFS and the above storage, we can use [ants-db](https://github.com/plexsysio/ants-db) to have a distributed CRDT store across all the go-msuite instances which are configured to use it. This is particularly useful to share state across all the instances running. Also it piggy-backs on the existing libp2p and IPFS instances that we already configure.
 
 - Taskmanager
-	- This is a simple worker pool which can be used to run tasks asynchronously. [taskmanager](http://github.com/SWRMLabs/ss-taskmanager) can be configured to have dedicated go-routines which handle tasks created by users. Tasks can be short/long. All the tasks are stopped on app close. Also there is way to show task progress on the diagnostic endpoint
+	- This is a simple worker pool which can be used to run tasks asynchronously. [taskmanager](http://github.com/plexsysio/taskmanager) can be configured to have dedicated go-routines which handle tasks created by users. Tasks can be short/long. All the tasks are stopped on app close. Also there is way to show task progress on the diagnostic endpoint
 
 - Distributed locking
    - Distributed locking is useful when you have multiple instances of your services running. This way we can synchronize services across different machines. This component currently uses zookeeper/redis implementations which need to be managed separately.
