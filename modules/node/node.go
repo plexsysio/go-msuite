@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
@@ -270,11 +270,11 @@ func (s *impl) Server() *grpc.Server {
 	return s.Rsrv
 }
 
-func (s *impl) Client(ctx context.Context, name string) (*grpc.ClientConn, error) {
+func (s *impl) Client(ctx context.Context, name string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	if s.Cs == nil {
 		return nil, errors.New("Service discovery not configured")
 	}
-	return s.Cs.Get(ctx, name)
+	return s.Cs.Get(ctx, name, opts...)
 }
 
 func (s *impl) HTTP() (core.HTTP, error) {

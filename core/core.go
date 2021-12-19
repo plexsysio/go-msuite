@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -57,7 +57,7 @@ type Auth interface {
 
 type GRPC interface {
 	Server() *grpc.Server
-	Client(context.Context, string) (*grpc.ClientConn, error)
+	Client(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error)
 }
 
 type HTTP interface {
