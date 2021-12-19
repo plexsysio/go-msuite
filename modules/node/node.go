@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	ds "github.com/ipfs/go-datastore"
 	logger "github.com/ipfs/go-log/v2"
@@ -178,6 +179,7 @@ type impl struct {
 	Lk   dLocker.DLocker          `optional:"true"`
 	Rsrv *grpc.Server             `optional:"true"`
 	Mx   *http.ServeMux           `optional:"true"`
+	Gmx  *runtime.ServeMux        `optional:"true"`
 	H    host.Host                `optional:"true"`
 	Dht  routing.Routing          `optional:"true"`
 	P    *ipfslite.Peer           `optional:"true"`
@@ -284,6 +286,10 @@ func (s *impl) HTTP() (core.HTTP, error) {
 
 func (s *impl) Mux() *http.ServeMux {
 	return s.Mx
+}
+
+func (s *impl) Gateway() *runtime.ServeMux {
+	return s.Gmx
 }
 
 func (s *impl) Locker() (dLocker.DLocker, error) {

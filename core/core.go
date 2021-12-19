@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -61,4 +62,5 @@ type GRPC interface {
 
 type HTTP interface {
 	Mux() *http.ServeMux
+	Gateway() *runtime.ServeMux
 }
