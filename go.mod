@@ -7,7 +7,6 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
-	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hsanjuan/ipfs-lite v1.2.0
@@ -36,6 +35,6 @@ require (
 	github.com/slok/go-http-metrics v0.9.0
 	github.com/uber/jaeger-client-go v2.22.1+incompatible // indirect
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
-	go.uber.org/fx v1.10.0
+	go.uber.org/fx v1.16.0
 	google.golang.org/grpc v1.42.0
 )

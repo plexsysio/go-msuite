@@ -89,3 +89,24 @@ func NewP2PListener(
 		},
 	}, nil
 }
+
+func NewUDSListener(conf config.Config) (MuxListenerOut, error) {
+	var sock string
+	ok := conf.Get("UDSocket", &sock)
+	if !ok {
+		log.Error("Unix socket missing")
+		return MuxListenerOut{}, errors.New("socket absent")
+	}
+	log.Info("Starting UDS listener on socket", sock)
+	listnr, err := net.Listen("unix", sock)
+	if err != nil {
+		log.Errorf("Failed starting TCP listener Err:%s", err.Error())
+		return MuxListenerOut{}, err
+	}
+	return MuxListenerOut{
+		Listener: grpcmux.MuxListener{
+			Tag:      fmt.Sprintf("UDS Sock %s", sock),
+			Listener: listnr,
+		},
+	}, nil
+}

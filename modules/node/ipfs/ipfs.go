@@ -7,6 +7,12 @@ import (
 var P2PModule = fx.Options(
 	fx.Provide(Identity),
 	fx.Provide(Libp2p),
+	fx.Provide(
+		fx.Annotate(
+			LocalDialer,
+			fx.ResultTags(`name:"localDialer"`),
+		),
+	),
 	fx.Provide(Pubsub),
 	fx.Provide(NewSvcDiscovery),
 	fx.Invoke(NewMDNSDiscovery),

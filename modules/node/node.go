@@ -45,13 +45,6 @@ func (*FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
 }
 
-var authModule = func(c config.Config) fx.Option {
-	return fx.Options(
-		utils.MaybeProvide(auth.NewJWTManager, c.IsSet("UseJWT")),
-		utils.MaybeProvide(auth.NewAclManager, c.IsSet("UseACL")),
-	)
-}
-
 func New(bCfg config.Config) (core.Service, error) {
 	var (
 		r   repo.Repo
@@ -76,6 +69,7 @@ func New(bCfg config.Config) (core.Service, error) {
 	bCfg = r.Config()
 
 	svc := &impl{}
+	dp := deps{}
 
 	app := fx.New(
 		fx.Logger(&FxLog{}),
@@ -85,8 +79,8 @@ func New(bCfg config.Config) (core.Service, error) {
 		fx.Provide(func(lc fx.Lifecycle) (repo.Repo, config.Config, ds.Batching) {
 			lc.Append(fx.Hook{
 				OnStop: func(ctx context.Context) error {
-					log.Debugf("closing repo")
-					defer log.Debugf("closed repo")
+					log.Debugf("stopping repo")
+					defer log.Debugf("stopped repo")
 					return r.Close()
 				},
 			})
@@ -97,11 +91,11 @@ func New(bCfg config.Config) (core.Service, error) {
 		utils.MaybeProvide(metrics.New, bCfg.IsSet("UsePrometheus")),
 		utils.MaybeProvide(metrics.NewTracer, bCfg.IsSet("UseTracing")),
 		utils.MaybeOption(locker.Module, bCfg.IsSet("UseLocker")),
-		authModule(r.Config()),
+		utils.MaybeOption(auth.Module, bCfg.IsSet("UseAuth")),
 		utils.MaybeOption(ipfs.P2PModule, bCfg.IsSet("UseP2P")),
 		utils.MaybeOption(ipfs.FilesModule, bCfg.IsSet("UseP2P") && bCfg.IsSet("UseFiles")),
 		utils.MaybeOption(grpcsvc.Module(r.Config()), bCfg.IsSet("UseGRPC")),
-		mhttp.Module(r.Config()),
+		utils.MaybeOption(mhttp.Module(r.Config()), bCfg.IsSet("UseHTTP")),
 		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
 		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
 		utils.MaybeInvoke(status.RegisterHTTP, bCfg.IsSet("UseHTTP")),
@@ -118,10 +112,11 @@ func New(bCfg config.Config) (core.Service, error) {
 			st.AddReporter("TaskManager", &tmReporter{tm})
 			st.AddReporter("Services", &svcsReporter{c})
 		}),
-		fx.Populate(svc),
+		fx.Populate(&dp),
 	)
 
 	svc.App = app
+	svc.dp = dp
 	return svc, nil
 }
 
@@ -166,149 +161,149 @@ func (s *svcsReporter) Status() interface{} {
 	return svcs
 }
 
-type impl struct {
+type deps struct {
 	fx.In
 
-	*fx.App `optional:"true"`
-	Ctx     context.Context
-	Cancel  context.CancelFunc
+	Ctx    context.Context
+	Cancel context.CancelFunc
+	R      repo.Repo
+	Am     auth.ACL                 `optional:"true"`
+	Tm     *taskmanager.TaskManager `optional:"true"`
+	Lk     dLocker.DLocker          `optional:"true"`
+	Rsrv   *grpc.Server             `optional:"true"`
+	Mx     *http.ServeMux           `optional:"true"`
+	Gmx    *runtime.ServeMux        `optional:"true"`
+	H      host.Host                `optional:"true"`
+	Dht    routing.Routing          `optional:"true"`
+	P      *ipfslite.Peer           `optional:"true"`
+	Ps     *pubsub.PubSub           `optional:"true"`
+	Disc   discovery.Discovery      `optional:"true"`
+	St     store.Store              `optional:"true"`
+	Jm     auth.JWTManager          `optional:"true"`
+	Ev     events.Events            `optional:"true"`
+	Cs     grpcclient.ClientSvc     `optional:"true"`
+	ShSt   sharedStorage.Provider   `optional:"true"`
+}
 
-	R    repo.Repo
-	Am   auth.ACL                 `optional:"true"`
-	Tm   *taskmanager.TaskManager `optional:"true"`
-	Lk   dLocker.DLocker          `optional:"true"`
-	Rsrv *grpc.Server             `optional:"true"`
-	Mx   *http.ServeMux           `optional:"true"`
-	Gmx  *runtime.ServeMux        `optional:"true"`
-	H    host.Host                `optional:"true"`
-	Dht  routing.Routing          `optional:"true"`
-	P    *ipfslite.Peer           `optional:"true"`
-	Ps   *pubsub.PubSub           `optional:"true"`
-	Disc discovery.Discovery      `optional:"true"`
-	St   store.Store              `optional:"true"`
-	Jm   auth.JWTManager          `optional:"true"`
-	Ev   events.Events            `optional:"true"`
-	Cs   grpcclient.ClientSvc     `optional:"true"`
-	ShSt sharedStorage.Provider   `optional:"true"`
+type impl struct {
+	*fx.App
+	started bool
+	dp      deps
+}
+
+func (s *impl) Start(ctx context.Context) error {
+	if s.started {
+		return nil
+	}
+	s.started = true
+	return s.App.Start(ctx)
 }
 
 func (s *impl) Repo() repo.Repo {
-	return s.R
+	return s.dp.R
 }
 
-func (s *impl) TM() (*taskmanager.TaskManager, error) {
-	if s.Tm == nil {
-		return nil, errors.New("Taskmanager not configured")
-	}
-	return s.Tm, nil
+func (s *impl) TM() *taskmanager.TaskManager {
+	return s.dp.Tm
 }
 
-func (s *impl) Node() (core.Node, error) {
-	if s.H == nil {
-		return nil, errors.New("Node not configured")
+func (s *impl) P2P() (core.P2P, error) {
+	if s.dp.H == nil || s.dp.Dht == nil || s.dp.Disc == nil || s.dp.Ps == nil {
+		return nil, errors.New("P2P not configured")
 	}
 	return s, nil
 }
 
-// P2P API
-func (s *impl) P2P() core.P2P {
-	return s
-}
-
 func (s *impl) Host() host.Host {
-	return s.H
+	return s.dp.H
 }
 
 func (s *impl) Routing() routing.Routing {
-	return s.Dht
+	return s.dp.Dht
 }
 
 func (s *impl) Discovery() discovery.Discovery {
-	return s.Disc
+	return s.dp.Disc
 }
 
-// Pubsub API
 func (s *impl) Pubsub() *pubsub.PubSub {
-	return s.Ps
+	return s.dp.Ps
 }
 
 // Files API
 func (s *impl) Files() (*ipfslite.Peer, error) {
-	if s.P == nil {
+	if s.dp.P == nil {
 		return nil, errors.New("Files service not configured")
 	}
-	return s.P, nil
+	return s.dp.P, nil
 }
 
 // Auth API
-func (s *impl) Auth() core.Auth {
-	return s
+func (s *impl) Auth() (core.Auth, error) {
+	if s.dp.Jm == nil || s.dp.Am == nil {
+		return nil, errors.New("Auth not configured")
+	}
+	return s, nil
 }
 
-func (s *impl) JWT() (auth.JWTManager, error) {
-	if s.Jm == nil {
-		return nil, errors.New("JWT not configured")
-	}
-	return s.Jm, nil
+func (s *impl) JWT() auth.JWTManager {
+	return s.dp.Jm
 }
 
-func (s *impl) ACL() (auth.ACL, error) {
-	if s.Am == nil {
-		return nil, errors.New("ACL manager not configured")
-	}
-	return s.Am, nil
+func (s *impl) ACL() auth.ACL {
+	return s.dp.Am
 }
 
 func (s *impl) GRPC() (core.GRPC, error) {
-	if s.Rsrv == nil {
+	if s.dp.Rsrv == nil {
 		return nil, errors.New("GRPC service not configured")
 	}
 	return s, nil
 }
 
 func (s *impl) Server() *grpc.Server {
-	return s.Rsrv
+	return s.dp.Rsrv
 }
 
 func (s *impl) Client(ctx context.Context, name string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	if s.Cs == nil {
+	if s.dp.Cs == nil {
 		return nil, errors.New("Service discovery not configured")
 	}
-	return s.Cs.Get(ctx, name, opts...)
+	return s.dp.Cs.Get(ctx, name, opts...)
 }
 
 func (s *impl) HTTP() (core.HTTP, error) {
-	if s.Mx == nil {
+	if s.dp.Mx == nil {
 		return nil, errors.New("HTTP service not configured")
 	}
 	return s, nil
 }
 
 func (s *impl) Mux() *http.ServeMux {
-	return s.Mx
+	return s.dp.Mx
 }
 
 func (s *impl) Gateway() *runtime.ServeMux {
-	return s.Gmx
+	return s.dp.Gmx
 }
 
 func (s *impl) Locker() (dLocker.DLocker, error) {
-	if s.Lk == nil {
+	if s.dp.Lk == nil {
 		return nil, errors.New("Locker not configured")
 	}
-	return s.Lk, nil
+	return s.dp.Lk, nil
 }
 
 func (s *impl) Events() (events.Events, error) {
-	if s.Ev == nil {
+	if s.dp.Ev == nil {
 		return nil, errors.New("Events not configured")
 	}
-	return s.Ev, nil
+	return s.dp.Ev, nil
 }
 
 func (s *impl) SharedStorage(ns string, cb sharedStorage.Callback) (store.Store, error) {
-	if s.ShSt == nil {
+	if s.dp.ShSt == nil {
 		return nil, errors.New("shared storage provider not configured")
 	}
-	return s.ShSt.SharedStorage(ns, cb)
+	return s.dp.ShSt.SharedStorage(ns, cb)
 }

@@ -4,18 +4,21 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
+	"github.com/plexsysio/gkvstore"
 	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/modules/repo"
+	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 )
 
 type Role string
 
 type ACL interface {
-	Configure(rsc string, role Role) error
-	Delete(rsc string) error
-	Authorized(rsc string, role Role) bool
-	Allowed(rsc string) []Role
+	Configure(ctx context.Context, rsc string, role Role) error
+	Delete(ctx context.Context, rsc string) error
+	Authorized(ctx context.Context, rsc string, role Role) bool
+	Allowed(ctx context.Context, rsc string) []Role
 }
 
 const (
@@ -64,7 +67,7 @@ func (m *Acl) GetID() string {
 }
 
 func (*Acl) GetNamespace() string {
-	return "Acl"
+	return "acl"
 }
 
 func (m *Acl) Marshal() ([]byte, error) {
@@ -79,12 +82,27 @@ type aclManager struct {
 	st store.Store
 }
 
-func NewAclManager(r repo.Repo) (ACL, error) {
-	am := &aclManager{r.Store()}
+func NewAclManager(r repo.Repo, shStore sharedStorage.Provider) (ACL, error) {
+	fmt.Println("CALLED")
+	var (
+		st  gkvstore.Store
+		err error
+	)
+	// If P2P mode is configured, share ACLs across nodes
+	if shStore != nil {
+		st, err = shStore.SharedStorage("acl", nil)
+	} else {
+		fmt.Println("LOCAL MODE")
+		st = r.Store()
+	}
+	if err != nil {
+		return nil, err
+	}
+	am := &aclManager{st}
 	acls := map[string]string{}
 	if ok := r.Config().Get("ACL", &acls); ok {
 		for k, v := range acls {
-			err := am.Configure(k, Role(v))
+			err := am.Configure(context.Background(), k, Role(v))
 			if err != nil {
 				return nil, err
 			}
@@ -93,7 +111,7 @@ func NewAclManager(r repo.Repo) (ACL, error) {
 	return am, nil
 }
 
-func (a *aclManager) Configure(rsc string, role Role) error {
+func (a *aclManager) Configure(ctx context.Context, rsc string, role Role) error {
 	r, ok := aclMap[role]
 	if !ok {
 		return errors.New("Invalid Role")
@@ -102,21 +120,21 @@ func (a *aclManager) Configure(rsc string, role Role) error {
 		Key:   rsc,
 		Roles: r,
 	}
-	return a.st.Update(context.TODO(), nacl)
+	return a.st.Update(ctx, nacl)
 }
 
-func (a *aclManager) Delete(rsc string) error {
+func (a *aclManager) Delete(ctx context.Context, rsc string) error {
 	nacl := &Acl{
 		Key: rsc,
 	}
-	return a.st.Delete(context.TODO(), nacl)
+	return a.st.Delete(ctx, nacl)
 }
 
-func (a *aclManager) Authorized(rsc string, role Role) bool {
+func (a *aclManager) Authorized(ctx context.Context, rsc string, role Role) bool {
 	nacl := &Acl{
 		Key: rsc,
 	}
-	err := a.st.Read(context.TODO(), nacl)
+	err := a.st.Read(ctx, nacl)
 	if err != nil {
 		// If there is no ACL configured, by default access is universal
 		return true
@@ -128,11 +146,11 @@ func (a *aclManager) Authorized(rsc string, role Role) bool {
 	return r >= nacl.Roles
 }
 
-func (a *aclManager) Allowed(rsc string) []Role {
+func (a *aclManager) Allowed(ctx context.Context, rsc string) []Role {
 	nacl := &Acl{
 		Key: rsc,
 	}
-	err := a.st.Read(context.TODO(), nacl)
+	err := a.st.Read(ctx, nacl)
 	if err != nil {
 		// If there is no ACL configured, by default access is universal
 		return []Role{None, PublicRead, PublicWrite, AuthRead, AuthWrite, Admin}

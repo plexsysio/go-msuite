@@ -21,6 +21,7 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
+	"go.uber.org/fx"
 )
 
 func Identity(conf config.Config) (crypto.PrivKey, error) {
@@ -53,6 +54,7 @@ var Libp2pOptionsExtra = []libp2p.Option{
 }
 
 func Libp2p(
+	lc fx.Lifecycle,
 	ctx context.Context,
 	conf config.Config,
 	priv crypto.PrivKey,
@@ -67,7 +69,7 @@ func Libp2p(
 		return nil, nil, errors.New("Invalid swarm port Err:" + err.Error())
 	}
 	listenAddrs := []multiaddr.Multiaddr{tcpAddr}
-	return ipfslite.SetupLibp2p(
+	h, dht, err := ipfslite.SetupLibp2p(
 		ctx,
 		priv,
 		nil,
@@ -75,6 +77,35 @@ func Libp2p(
 		nil,
 		Libp2pOptionsExtra...,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(c context.Context) error {
+			h.Close()
+			dht.Close()
+			return nil
+		},
+	})
+	return h, dht, nil
+}
+
+func LocalDialer(
+	lc fx.Lifecycle,
+) (host.Host, error) {
+	h, err := libp2p.New(
+		libp2p.DefaultTransports,
+		libp2p.NoListenAddrs,
+	)
+	if err != nil {
+		return nil, err
+	}
+	lc.Append(fx.Hook{
+		OnStop: func(_ context.Context) error {
+			return h.Close()
+		},
+	})
+	return h, nil
 }
 
 func NewNode(

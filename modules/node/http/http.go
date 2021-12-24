@@ -18,13 +18,13 @@ var log = logger.Logger("http")
 
 var Module = func(c config.Config) fx.Option {
 	return fx.Options(
-		utils.MaybeProvide(NewHTTPServerMux, c.IsSet("UseHTTP")),
-		utils.MaybeProvide(NewGRPCGateway, c.IsSet("UseHTTP")),
-		utils.MaybeProvide(JWT, c.IsSet("UseJWT")),
+		fx.Provide(NewHTTPServerMux),
+		fx.Provide(NewGRPCGateway),
+		fx.Invoke(NewHTTPServer),
+		utils.MaybeProvide(JWT, c.IsSet("UseAuth")),
 		utils.MaybeProvide(Tracing, c.IsSet("UseTracing")),
 		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
 		utils.MaybeInvoke(RegisterDebug, c.IsSet("UseDebug")),
-		utils.MaybeInvoke(NewHTTPServer, c.IsSet("UseHTTP")),
 	)
 }
 
@@ -79,8 +79,9 @@ func NewHTTPServer(
 	httpServer := &nhttp.Server{Addr: fmt.Sprintf(":%d", httpPort), Handler: rootHandler}
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			stopped := make(chan struct{})
+			started, stopped := make(chan struct{}), make(chan struct{})
 			go func() {
+				close(started)
 				defer close(stopped)
 
 				log.Info("Starting http server")
@@ -89,6 +90,11 @@ func NewHTTPServer(
 					log.Error("http server stopped ", err)
 				}
 			}()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-started:
+			}
 			st.AddReporter("HTTP Server", &httpReporter{port: httpPort, stopped: stopped})
 			return nil
 		},

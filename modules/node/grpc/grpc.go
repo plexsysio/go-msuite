@@ -44,8 +44,9 @@ func New(
 	rpcSrv := grpc.NewServer(params.Opts...)
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			stopped := make(chan struct{})
+			started, stopped := make(chan struct{}), make(chan struct{})
 			go func() {
+				close(started)
 				defer close(stopped)
 
 				log.Info("Starting GRPC server")
@@ -54,6 +55,11 @@ func New(
 					log.Error("Failed to serve gRPC", err.Error())
 				}
 			}()
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-started:
+			}
 			params.StManager.AddReporter("GRPC Server", &grpcReporter{stopped: stopped})
 			return nil
 		},
@@ -86,13 +92,14 @@ func Transport(c config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(NewMuxedListener),
 		utils.MaybeProvide(NewTCPListener, c.IsSet("UseTCP")),
-		utils.MaybeProvide(NewP2PListener, c.IsSet("UseP2P")),
+		utils.MaybeProvide(NewP2PListener, c.IsSet("UseP2PGRPC")),
+		utils.MaybeProvide(NewUDSListener, c.IsSet("UseUDS")),
 	)
 }
 
 func Middleware(c config.Config) fx.Option {
 	return fx.Options(
-		utils.MaybeOption(JwtAuth, c.IsSet("UseJWT")),
+		utils.MaybeOption(JwtAuth, c.IsSet("UseAuth")),
 		utils.MaybeOption(TracerModule, c.IsSet("UseTracing")),
 		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
 	)
@@ -100,7 +107,13 @@ func Middleware(c config.Config) fx.Option {
 
 func Client(c config.Config) fx.Option {
 	return fx.Options(
-		utils.MaybeProvide(grpcclient.NewP2PClientService, c.IsSet("UseP2P")),
+		utils.MaybeProvide(
+			fx.Annotate(
+				grpcclient.NewP2PClientService,
+				fx.ParamTags(``, `name:localDialer`),
+			),
+			c.IsSet("UseP2P"),
+		),
 		utils.MaybeInvoke(grpcclient.NewP2PClientAdvertiser, c.IsSet("UseP2P")),
 		utils.MaybeProvide(grpcclient.NewStaticClientService, !c.IsSet("UseP2P") && c.IsSet("UseStaticDiscovery")),
 	)

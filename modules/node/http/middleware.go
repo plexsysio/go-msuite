@@ -38,7 +38,7 @@ func JWT(jm auth.JWTManager, am auth.ACL) MiddlewareOut {
 		Mware: func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				log.Info("JWT middleware called")
-				roles := am.Allowed(r.URL.String())
+				roles := am.Allowed(r.Context(), r.URL.String())
 				for _, rl := range roles {
 					if rl == auth.None {
 						// everyone can access
