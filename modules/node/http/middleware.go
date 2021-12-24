@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strings"
 
+	"github.com/gorilla/handlers"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/go-msuite/modules/auth"
@@ -38,7 +40,7 @@ func JWT(jm auth.JWTManager, am auth.ACL) MiddlewareOut {
 		Mware: func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				log.Info("JWT middleware called")
-				roles := am.Allowed(r.URL.String())
+				roles := am.Allowed(r.Context(), r.URL.String())
 				for _, rl := range roles {
 					if rl == auth.None {
 						// everyone can access
@@ -114,4 +116,18 @@ func RegisterDebug(mux *http.ServeMux) {
 	mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 
 	mux.Handle("/debug/vars", expvar.Handler())
+}
+
+func Recovery() MiddlewareOut {
+	return MiddlewareOut{
+		Mware: handlers.RecoveryHandler(handlers.PrintRecoveryStack(true)),
+	}
+}
+
+func Logging() MiddlewareOut {
+	return MiddlewareOut{
+		Mware: func(next http.Handler) http.Handler {
+			return handlers.LoggingHandler(os.Stdout, next)
+		},
+	}
 }

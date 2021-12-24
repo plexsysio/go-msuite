@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
@@ -26,10 +27,14 @@ type Service interface {
 	Stop(context.Context) error
 	Done() <-chan os.Signal
 
+	// Following packages are must
+	// Repo manages the on-disk/inmem state of the application
 	Repo() repo.Repo
-	Auth() Auth
-	TM() (*taskmanager.TaskManager, error)
-	Node() (Node, error)
+	// TM uses taskmanager for async task scheduling within
+	TM() *taskmanager.TaskManager
+
+	Auth() (Auth, error)
+	P2P() (P2P, error)
 	GRPC() (GRPC, error)
 	HTTP() (HTTP, error)
 	Locker() (dLocker.DLocker, error)
@@ -38,27 +43,24 @@ type Service interface {
 	Files() (*ipfslite.Peer, error)
 }
 
-type Node interface {
-	P2P() P2P
-	Pubsub() *pubsub.PubSub
-}
-
 type P2P interface {
 	Host() host.Host
 	Routing() routing.Routing
 	Discovery() discovery.Discovery
+	Pubsub() *pubsub.PubSub
 }
 
 type Auth interface {
-	JWT() (auth.JWTManager, error)
-	ACL() (auth.ACL, error)
+	JWT() auth.JWTManager
+	ACL() auth.ACL
 }
 
 type GRPC interface {
 	Server() *grpc.Server
-	Client(context.Context, string) (*grpc.ClientConn, error)
+	Client(context.Context, string, ...grpc.DialOption) (*grpc.ClientConn, error)
 }
 
 type HTTP interface {
 	Mux() *http.ServeMux
+	Gateway() *runtime.ServeMux
 }

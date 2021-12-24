@@ -3,6 +3,8 @@ package grpcsvc
 import (
 	"context"
 
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -81,7 +83,7 @@ func (interceptor *AuthInterceptor) Stream() grpc.StreamServerInterceptor {
 }
 
 func (interceptor *AuthInterceptor) authorize(ctx context.Context, method string) error {
-	roles := interceptor.am.Allowed(method)
+	roles := interceptor.am.Allowed(ctx, method)
 	for _, rl := range roles {
 		if rl == auth.None {
 			// everyone can access
@@ -140,17 +142,20 @@ func MetricsRegister(reg *prometheus.Registry, s *grpc.Server, metrics *grpc_pro
 	metrics.InitializeMetrics(s)
 }
 
-var TracerModule = fx.Options(
-	fx.Provide(JaegerTracerOptions),
-)
-
-type TracerOpts struct {
-	fx.Out
-
-	UOut grpc.UnaryServerInterceptor `group:"unary_opts"`
+func JaegerTracerOptions(tracer opentracing.Tracer) grpc.UnaryServerInterceptor {
+	return gtrace.ServerInterceptor(tracer)
 }
 
-func JaegerTracerOptions(tracer opentracing.Tracer) (params TracerOpts) {
-	params.UOut = gtrace.ServerInterceptor(tracer)
-	return
+func Validator() (grpc.UnaryServerInterceptor, grpc.StreamServerInterceptor) {
+	return grpc_validator.UnaryServerInterceptor(), grpc_validator.StreamServerInterceptor()
+}
+
+func Recovery() (grpc.UnaryServerInterceptor, grpc.StreamServerInterceptor) {
+	opts := []grpc_recovery.Option{
+		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
+			log.Errorf("PANIC", p)
+			return status.Errorf(codes.Unknown, "internal error")
+		}),
+	}
+	return grpc_recovery.UnaryServerInterceptor(opts...), grpc_recovery.StreamServerInterceptor(opts...)
 }

@@ -3,6 +3,7 @@ package msuite
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
@@ -20,22 +21,25 @@ type BuildCfg struct {
 
 type Option func(c *BuildCfg)
 
-func WithGRPC() Option {
+func WithGRPC(nw string, id interface{}) Option {
 	return func(c *BuildCfg) {
 		c.startupCfg.Set("UseGRPC", true)
+		switch nw {
+		case "tcp":
+			c.startupCfg.Set("UseTCP", true)
+			c.startupCfg.Set("TCPPort", id.(int))
+		case "p2p":
+			c.startupCfg.Set("UseP2PGRPC", true)
+		case "unix":
+			c.startupCfg.Set("UseUDS", true)
+			c.startupCfg.Set("UDSocket", id.(string))
+		}
 	}
 }
 
-func WithGRPCTCPListener(port int) Option {
+func WithAuth(secret string) Option {
 	return func(c *BuildCfg) {
-		c.startupCfg.Set("UseTCP", true)
-		c.startupCfg.Set("TCPPort", port)
-	}
-}
-
-func WithJWT(secret string) Option {
-	return func(c *BuildCfg) {
-		c.startupCfg.Set("UseJWT", true)
+		c.startupCfg.Set("UseAuth", true)
 		c.startupCfg.Set("JWTSecret", secret)
 	}
 }
@@ -83,7 +87,7 @@ func WithP2PPrivateKey(key crypto.PrivKey) Option {
 	}
 }
 
-func WithP2PPort(port int) Option {
+func WithP2P(port int) Option {
 	return func(c *BuildCfg) {
 		c.startupCfg.Set("UseP2P", true)
 		c.startupCfg.Set("SwarmPort", port)
@@ -98,14 +102,21 @@ func WithRepositoryRoot(path string) Option {
 
 func WithServiceName(name string) Option {
 	return func(c *BuildCfg) {
-		c.startupCfg.Set("Services", []string{name})
+		var services []string
+		_ = c.startupCfg.Get("Services", &services)
+		services = append(services, name)
+		c.startupCfg.Set("Services", services)
 	}
 }
 
 func WithServiceACL(acl map[string]string) Option {
 	return func(c *BuildCfg) {
-		c.startupCfg.Set("UseACL", true)
-		c.startupCfg.Set("ACL", acl)
+		existingAcls := map[string]string{}
+		_ = c.startupCfg.Get("ACL", &existingAcls)
+		for k, v := range acl {
+			existingAcls[k] = v
+		}
+		c.startupCfg.Set("ACL", existingAcls)
 	}
 }
 
@@ -163,20 +174,9 @@ func defaultOpts(c *BuildCfg) {
 		services = append(services, k)
 	}
 	c.startupCfg.Set("Services", services)
-
-	if c.startupCfg.IsSet("UseP2P") || c.startupCfg.IsSet("UseTCP") || c.startupCfg.IsSet("UseHTTP") {
-		tmCfg := map[string]int{}
-		found := c.startupCfg.Get("TMWorkers", &tmCfg)
-		if found {
-			if tmCfg["Max"] < 20 {
-				tmCfg["Max"] += 20
-			}
-			c.startupCfg.Set("TMWorkers", tmCfg)
-		}
-	}
 }
 
-func New(opts ...Option) (core.Service, error) {
+func New(ctx context.Context, opts ...Option) (core.Service, error) {
 	bCfg := &BuildCfg{
 		startupCfg: jsonConf.DefaultConfig(),
 		services:   make(map[string]func(core.Service) error),
@@ -192,12 +192,23 @@ func New(opts ...Option) (core.Service, error) {
 		return nil, err
 	}
 
+	if len(bCfg.services) > 0 {
+		err = svc.Start(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	for _, initFn := range bCfg.services {
 		err = initFn(svc)
 		if err != nil {
-			ctxd, cancel := context.WithTimeout(context.Background(), time.Second*5)
-			defer cancel()
-			_ = svc.Stop(ctxd)
+			_ = svc.Stop(context.Background())
+			select {
+			case <-svc.Done():
+				fmt.Println("service stopped on error")
+			case <-time.After(5 * time.Second):
+				fmt.Println("waited 5 secs to stop")
+			}
 			return nil, err
 		}
 	}

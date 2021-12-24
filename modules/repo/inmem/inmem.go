@@ -5,6 +5,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/namespace"
+	syncds "github.com/ipfs/go-datastore/sync"
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/plexsysio/gkvstore"
@@ -48,7 +49,7 @@ func CreateOrOpen(c config.Config) (repo.Repo, error) {
 	if err != nil {
 		return nil, err
 	}
-	ds := datastore.NewMapDatastore()
+	ds := syncds.MutexWrap(datastore.NewMapDatastore())
 	st := ipfsdsStore.New(namespace.Wrap(ds, datastore.NewKey("/kv")))
 	return &inmemRepo{
 		c:  c,

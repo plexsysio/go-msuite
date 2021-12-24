@@ -27,11 +27,11 @@ type ClientSvc interface {
 
 func NewP2PClientService(
 	d discovery.Discovery,
-	h host.Host,
+	localDialer host.Host,
 ) (ClientSvc, error) {
 	csvc := &clientImpl{
 		ds: d,
-		h:  h,
+		h:  localDialer,
 	}
 	return csvc, nil
 }
