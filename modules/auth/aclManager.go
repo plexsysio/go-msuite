@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/plexsysio/gkvstore"
 	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
@@ -83,7 +82,7 @@ type aclManager struct {
 
 func NewAclManager(r repo.Repo, shStore sharedStorage.Provider) (ACL, error) {
 	var (
-		st  gkvstore.Store
+		st  store.Store
 		err error
 	)
 	// If P2P mode is configured, share ACLs across nodes

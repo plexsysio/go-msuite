@@ -54,8 +54,8 @@ var Libp2pOptionsExtra = []libp2p.Option{
 }
 
 func Libp2p(
-	lc fx.Lifecycle,
 	ctx context.Context,
+	lc fx.Lifecycle,
 	conf config.Config,
 	priv crypto.PrivKey,
 ) (host.Host, routing.Routing, error) {
