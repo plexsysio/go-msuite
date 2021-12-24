@@ -1,10 +1,7 @@
 package msuite
 
 import (
-	"context"
 	"encoding/base64"
-	"fmt"
-	"time"
 
 	"github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/peer"
@@ -122,6 +119,9 @@ func WithServiceACL(acl map[string]string) Option {
 
 func WithTaskManager(min, max int) Option {
 	return func(c *BuildCfg) {
+		if max < 20 {
+			max += 20
+		}
 		c.startupCfg.Set("TMWorkers", map[string]int{
 			"Min": min,
 			"Max": max,
@@ -176,7 +176,7 @@ func defaultOpts(c *BuildCfg) {
 	c.startupCfg.Set("Services", services)
 }
 
-func New(ctx context.Context, opts ...Option) (core.Service, error) {
+func New(opts ...Option) (core.Service, error) {
 	bCfg := &BuildCfg{
 		startupCfg: jsonConf.DefaultConfig(),
 		services:   make(map[string]func(core.Service) error),
@@ -192,23 +192,9 @@ func New(ctx context.Context, opts ...Option) (core.Service, error) {
 		return nil, err
 	}
 
-	if len(bCfg.services) > 0 {
-		err = svc.Start(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	for _, initFn := range bCfg.services {
 		err = initFn(svc)
 		if err != nil {
-			_ = svc.Stop(context.Background())
-			select {
-			case <-svc.Done():
-				fmt.Println("service stopped on error")
-			case <-time.After(5 * time.Second):
-				fmt.Println("waited 5 secs to stop")
-			}
 			return nil, err
 		}
 	}

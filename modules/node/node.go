@@ -187,16 +187,7 @@ type deps struct {
 
 type impl struct {
 	*fx.App
-	started bool
-	dp      deps
-}
-
-func (s *impl) Start(ctx context.Context) error {
-	if s.started {
-		return nil
-	}
-	s.started = true
-	return s.App.Start(ctx)
+	dp deps
 }
 
 func (s *impl) Repo() repo.Repo {

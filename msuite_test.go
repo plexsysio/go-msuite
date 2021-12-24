@@ -98,7 +98,6 @@ func MustFiles(t *testing.T, m core.Service, exists bool) {
 func TestBasicNew(t *testing.T) {
 	defer os.RemoveAll("tmp")
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithRepositoryRoot("tmp"),
 	)
 	if err != nil {
@@ -126,7 +125,6 @@ func TestBasicNew(t *testing.T) {
 
 func TestTM(t *testing.T) {
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithTaskManager(5, 100),
 		// Auth without P2P should initialize OK
 		msuite.WithAuth("dummysecret"),
@@ -156,7 +154,6 @@ func TestTM(t *testing.T) {
 
 func TestNode(t *testing.T) {
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithP2P(10000),
 	)
 	if err != nil {
@@ -186,7 +183,6 @@ func TestNode(t *testing.T) {
 func TestHTTP(t *testing.T) {
 	defer os.RemoveAll("tmp3")
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithRepositoryRoot("tmp3"),
 		msuite.WithHTTP(10000),
 	)
@@ -215,7 +211,6 @@ func TestHTTP(t *testing.T) {
 
 func TestGRPCLockerAuth(t *testing.T) {
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithP2P(10000),
 		msuite.WithFiles(),
 		msuite.WithGRPC("tcp", 10001),
@@ -271,7 +266,6 @@ func TestPrivateKey(t *testing.T) {
 	}
 
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithServiceName("test"),
 		msuite.WithP2PPrivateKey(sk),
 		msuite.WithRepositoryRoot("tmp"),
@@ -326,7 +320,6 @@ func TestServices(t *testing.T) {
 	defer os.RemoveAll("tmp5")
 
 	app, err := msuite.New(
-		context.TODO(),
 		msuite.WithServiceName("test"),
 		msuite.WithRepositoryRoot("tmp5"),
 		msuite.WithGRPC("tcp", 10000),
@@ -347,7 +340,6 @@ func TestServices(t *testing.T) {
 	initCalled := false
 
 	app, err = msuite.New(
-		context.TODO(),
 		msuite.WithServiceName("test"),
 		msuite.WithGRPC("tcp", 10000),
 		msuite.WithHTTP(10001),

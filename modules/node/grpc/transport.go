@@ -38,9 +38,10 @@ func NewMuxedListener(
 	m := grpcmux.New(ctx, in.Listeners, tm)
 	in.StManager.AddReporter("RPC Listeners", m)
 
-	m.Start(ctx)
-
 	lc.Append(fx.Hook{
+		OnStart: func(c context.Context) error {
+			return m.Start(c)
+		},
 		OnStop: func(c context.Context) error {
 			log.Info("Stopping Muxed listeners")
 			err := m.Close()
@@ -60,16 +61,12 @@ func NewTCPListener(conf config.Config) (MuxListenerOut, error) {
 		log.Error("TCPPort missing")
 		return MuxListenerOut{}, errors.New("Port absent")
 	}
-	log.Info("Starting TCP listener on port", portVal)
-	listnr, err := net.Listen("tcp", fmt.Sprintf(":%d", portVal))
-	if err != nil {
-		log.Errorf("Failed starting TCP listener Err:%s", err.Error())
-		return MuxListenerOut{}, err
-	}
 	return MuxListenerOut{
 		Listener: grpcmux.MuxListener{
-			Tag:      fmt.Sprintf("TCP Port %d", portVal),
-			Listener: listnr,
+			Tag: fmt.Sprintf("TCP Port %d", portVal),
+			Start: func() (net.Listener, error) {
+				return net.Listen("tcp", fmt.Sprintf(":%d", portVal))
+			},
 		},
 	}, nil
 }
@@ -77,15 +74,12 @@ func NewTCPListener(conf config.Config) (MuxListenerOut, error) {
 func NewP2PListener(
 	h host.Host,
 ) (MuxListenerOut, error) {
-	p, err := gostream.Listen(h, p2pgrpc.Protocol)
-	if err != nil {
-		return MuxListenerOut{}, err
-	}
-	log.Info("Started listener on P2P Host")
 	return MuxListenerOut{
 		Listener: grpcmux.MuxListener{
-			Tag:      "P2PGrpc",
-			Listener: p,
+			Tag: "P2PGrpc",
+			Start: func() (net.Listener, error) {
+				return gostream.Listen(h, p2pgrpc.Protocol)
+			},
 		},
 	}, nil
 }
@@ -97,16 +91,12 @@ func NewUDSListener(conf config.Config) (MuxListenerOut, error) {
 		log.Error("Unix socket missing")
 		return MuxListenerOut{}, errors.New("socket absent")
 	}
-	log.Info("Starting UDS listener on socket", sock)
-	listnr, err := net.Listen("unix", sock)
-	if err != nil {
-		log.Errorf("Failed starting TCP listener Err:%s", err.Error())
-		return MuxListenerOut{}, err
-	}
 	return MuxListenerOut{
 		Listener: grpcmux.MuxListener{
-			Tag:      fmt.Sprintf("UDS Sock %s", sock),
-			Listener: listnr,
+			Tag: fmt.Sprintf("UDS Sock %s", sock),
+			Start: func() (net.Listener, error) {
+				return net.Listen("unix", sock)
+			},
 		},
 	}, nil
 }

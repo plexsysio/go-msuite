@@ -16,8 +16,8 @@ import (
 var log = logger.Logger("grpc/lmux")
 
 type MuxListener struct {
-	Tag      string
-	Listener net.Listener
+	Start func() (net.Listener, error)
+	Tag   string
 }
 
 type Mux struct {
@@ -29,6 +29,8 @@ type Mux struct {
 	wg        sync.WaitGroup
 	statusMtx sync.Mutex
 	status    map[string]string
+	addrs     []net.Addr
+	closers   []io.Closer
 }
 
 func New(
@@ -65,11 +67,19 @@ func (m *Mux) Status() interface{} {
 	return m.status
 }
 
-func (m *Mux) Start(ctx context.Context) {
+func (m *Mux) Start(ctx context.Context) error {
 	for i := range m.listeners {
+		listener, err := m.listeners[i].Start()
+		if err != nil {
+			return err
+		}
+
+		m.closers = append(m.closers, listener)
+		m.addrs = append(m.addrs, listener.Addr())
+
 		l := &muxListener{
 			tag:      m.listeners[i].Tag,
-			listener: m.listeners[i].Listener,
+			listener: listener,
 			connChan: m.connChan,
 			reportErr: func(k string, err error) {
 				m.updateStatus(k, "failed with err: "+err.Error())
@@ -88,9 +98,10 @@ func (m *Mux) Start(ctx context.Context) {
 		case <-sched:
 			m.updateStatus(m.listeners[i].Tag, "running")
 		case <-ctx.Done():
-			return
+			return ctx.Err()
 		}
 	}
+	return nil
 }
 
 func (m *Mux) Accept() (net.Conn, error) {
@@ -113,8 +124,8 @@ func (m *Mux) Close() error {
 
 	m.muxCancel()
 	var err *multierror.Error
-	for _, l := range m.listeners {
-		e := l.Listener.Close()
+	for _, l := range m.closers {
+		e := l.Close()
 		if e != nil {
 			err = multierror.Append(err, e)
 		}
@@ -130,8 +141,8 @@ func (m *Mux) Close() error {
 }
 
 func (m *Mux) Addr() net.Addr {
-	if len(m.listeners) > 0 {
-		return m.listeners[0].Listener.Addr()
+	if len(m.addrs) > 0 {
+		return m.addrs[0]
 	}
 	return &net.TCPAddr{IP: net.ParseIP("0.0.0.0"), Port: 0}
 }

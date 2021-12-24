@@ -16,33 +16,26 @@ import (
 func TestMultipleListeners(t *testing.T) {
 	_ = logger.SetLogLevel("grpc/lmux", "*")
 
-	tcpListener1, err := net.Listen("tcp", ":10081")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tcpListener2, err := net.Listen("tcp", ":10082")
-	if err != nil {
-		t.Fatal(err)
-	}
-	tcpListener3, err := net.Listen("tcp", ":10083")
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	tm := taskmanager.New(4, 10, time.Second*10)
 
 	listeners := []grpcmux.MuxListener{
 		{
-			Listener: tcpListener1,
-			Tag:      "1",
+			Tag: "1",
+			Start: func() (net.Listener, error) {
+				return net.Listen("tcp", ":10081")
+			},
 		},
 		{
-			Listener: tcpListener2,
-			Tag:      "2",
+			Tag: "2",
+			Start: func() (net.Listener, error) {
+				return net.Listen("tcp", ":10082")
+			},
 		},
 		{
-			Listener: tcpListener3,
-			Tag:      "3",
+			Tag: "3",
+			Start: func() (net.Listener, error) {
+				return net.Listen("tcp", ":10083")
+			},
 		},
 	}
 
@@ -65,7 +58,10 @@ func TestMultipleListeners(t *testing.T) {
 	checkStatus("2", "not running")
 	checkStatus("3", "not running")
 
-	m.Start(context.TODO())
+	err := m.Start(context.TODO())
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	checkStatus("1", "running")
 	checkStatus("2", "running")
