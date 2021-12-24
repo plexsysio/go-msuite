@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/pprof"
+	"os"
 	"strings"
 
+	"github.com/gorilla/handlers"
 	"github.com/opentracing-contrib/go-stdlib/nethttp"
 	"github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/go-msuite/modules/auth"
@@ -114,4 +116,18 @@ func RegisterDebug(mux *http.ServeMux) {
 	mux.Handle("/debug/pprof/", http.HandlerFunc(pprof.Index))
 
 	mux.Handle("/debug/vars", expvar.Handler())
+}
+
+func Recovery() MiddlewareOut {
+	return MiddlewareOut{
+		Mware: handlers.RecoveryHandler(handlers.PrintRecoveryStack(true)),
+	}
+}
+
+func Logging() MiddlewareOut {
+	return MiddlewareOut{
+		Mware: func(next http.Handler) http.Handler {
+			return handlers.LoggingHandler(os.Stdout, next)
+		},
+	}
 }

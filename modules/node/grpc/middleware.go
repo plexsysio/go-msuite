@@ -3,6 +3,7 @@ package grpcsvc
 import (
 	"context"
 
+	grpc_recovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
@@ -147,4 +148,14 @@ func JaegerTracerOptions(tracer opentracing.Tracer) grpc.UnaryServerInterceptor 
 
 func Validator() (grpc.UnaryServerInterceptor, grpc.StreamServerInterceptor) {
 	return grpc_validator.UnaryServerInterceptor(), grpc_validator.StreamServerInterceptor()
+}
+
+func Recovery() (grpc.UnaryServerInterceptor, grpc.StreamServerInterceptor) {
+	opts := []grpc_recovery.Option{
+		grpc_recovery.WithRecoveryHandler(func(p interface{}) error {
+			log.Errorf("PANIC", p)
+			return status.Errorf(codes.Unknown, "internal error")
+		}),
+	}
+	return grpc_recovery.UnaryServerInterceptor(opts...), grpc_recovery.StreamServerInterceptor(opts...)
 }

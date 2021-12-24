@@ -5,6 +5,7 @@ go 1.13
 require (
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.1.0
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.3.0

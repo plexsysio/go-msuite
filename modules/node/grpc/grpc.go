@@ -116,6 +116,12 @@ func Middleware(c config.Config) fx.Option {
 				fx.ResultTags(`group:"unary_opts"`, `group:"stream_opts"`),
 			),
 		),
+		fx.Provide(
+			fx.Annotate(
+				Recovery,
+				fx.ResultTags(`group:"unary_opts"`, `group:"stream_opts"`),
+			),
+		),
 	)
 }
 

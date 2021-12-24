@@ -21,6 +21,8 @@ var Module = func(c config.Config) fx.Option {
 		fx.Provide(NewHTTPServerMux),
 		fx.Invoke(NewHTTPServer),
 		fx.Provide(NewGRPCGateway),
+		fx.Provide(Recovery),
+		fx.Provide(Logging),
 		utils.MaybeProvide(JWT, c.IsSet("UseAuth")),
 		utils.MaybeProvide(Tracing, c.IsSet("UseTracing")),
 		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
