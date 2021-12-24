@@ -100,8 +100,22 @@ func Transport(c config.Config) fx.Option {
 func Middleware(c config.Config) fx.Option {
 	return fx.Options(
 		utils.MaybeOption(JwtAuth, c.IsSet("UseAuth")),
-		utils.MaybeOption(TracerModule, c.IsSet("UseTracing")),
 		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),
+		utils.MaybeOption(
+			fx.Provide(
+				fx.Annotate(
+					JaegerTracerOptions,
+					fx.ResultTags(`group:"unary_opts"`),
+				),
+			),
+			c.IsSet("UseTracing"),
+		),
+		fx.Provide(
+			fx.Annotate(
+				Validator,
+				fx.ResultTags(`group:"unary_opts"`, `group:"stream_opts"`),
+			),
+		),
 	)
 }
 

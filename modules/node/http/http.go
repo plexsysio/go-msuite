@@ -20,7 +20,7 @@ var Module = func(c config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(NewHTTPServerMux),
 		fx.Invoke(NewHTTPServer),
-		utils.MaybeProvide(NewGRPCGateway, c.IsSet("UseGRPC")),
+		fx.Provide(NewGRPCGateway),
 		utils.MaybeProvide(JWT, c.IsSet("UseAuth")),
 		utils.MaybeProvide(Tracing, c.IsSet("UseTracing")),
 		utils.MaybeOption(Prometheus, c.IsSet("UsePrometheus")),

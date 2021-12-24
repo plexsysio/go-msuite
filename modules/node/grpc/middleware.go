@@ -3,6 +3,7 @@ package grpcsvc
 import (
 	"context"
 
+	grpc_validator "github.com/grpc-ecosystem/go-grpc-middleware/validator"
 	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	gtrace "github.com/moxiaomomo/grpc-jaeger"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -140,17 +141,10 @@ func MetricsRegister(reg *prometheus.Registry, s *grpc.Server, metrics *grpc_pro
 	metrics.InitializeMetrics(s)
 }
 
-var TracerModule = fx.Options(
-	fx.Provide(JaegerTracerOptions),
-)
-
-type TracerOpts struct {
-	fx.Out
-
-	UOut grpc.UnaryServerInterceptor `group:"unary_opts"`
+func JaegerTracerOptions(tracer opentracing.Tracer) grpc.UnaryServerInterceptor {
+	return gtrace.ServerInterceptor(tracer)
 }
 
-func JaegerTracerOptions(tracer opentracing.Tracer) (params TracerOpts) {
-	params.UOut = gtrace.ServerInterceptor(tracer)
-	return
+func Validator() (grpc.UnaryServerInterceptor, grpc.StreamServerInterceptor) {
+	return grpc_validator.UnaryServerInterceptor(), grpc_validator.StreamServerInterceptor()
 }
