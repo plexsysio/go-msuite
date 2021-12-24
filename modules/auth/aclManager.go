@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/plexsysio/gkvstore"
 	store "github.com/plexsysio/gkvstore"
@@ -83,7 +82,6 @@ type aclManager struct {
 }
 
 func NewAclManager(r repo.Repo, shStore sharedStorage.Provider) (ACL, error) {
-	fmt.Println("CALLED")
 	var (
 		st  gkvstore.Store
 		err error
@@ -92,7 +90,6 @@ func NewAclManager(r repo.Repo, shStore sharedStorage.Provider) (ACL, error) {
 	if shStore != nil {
 		st, err = shStore.SharedStorage("acl", nil)
 	} else {
-		fmt.Println("LOCAL MODE")
 		st = r.Store()
 	}
 	if err != nil {
