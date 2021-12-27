@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	logger "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p-pubsub"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/plexsysio/taskmanager"
 )
 

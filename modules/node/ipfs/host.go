@@ -14,6 +14,9 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/network"
+	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/libp2p/go-libp2p-core/routing"
 	p2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
@@ -21,6 +24,7 @@ import (
 	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
+	"github.com/plexsysio/taskmanager"
 	"go.uber.org/fx"
 )
 
@@ -149,4 +153,65 @@ func (p *p2pReporter) Status() interface{} {
 	stat["Peers"] = p.h.Network().Peers()
 
 	return stat
+}
+
+func parseBootstrapPeers(addrs []string) ([]peer.AddrInfo, error) {
+	maddrs := make([]multiaddr.Multiaddr, len(addrs))
+	for i, addr := range addrs {
+		var err error
+		maddrs[i], err = multiaddr.NewMultiaddr(addr)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return peer.AddrInfosFromP2pAddrs(maddrs...)
+}
+
+func Bootstrapper(
+	lc fx.Lifecycle,
+	cfg config.Config,
+	tm *taskmanager.TaskManager,
+	h host.Host,
+) error {
+	var addrs []string
+	if cfg.Get("BootstrapAddresses", &addrs) {
+		peers, err := parseBootstrapPeers(addrs)
+		if err != nil {
+			return err
+		}
+
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				sched, err := tm.GoFunc("Bootstrapper", func(c context.Context) error {
+					t := time.NewTicker(15 * time.Second)
+					for {
+						select {
+						case <-c.Done():
+							return nil
+						case <-t.C:
+							for _, p := range peers {
+								if h.Network().Connectedness(p.ID) != network.Connected {
+									h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
+									if err := h.Connect(ctx, p); err != nil {
+										log.Warn("could not connect to bootstrap address", p)
+									}
+								}
+							}
+						}
+					}
+				})
+				if err != nil {
+					return err
+				}
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-sched:
+					return nil
+				}
+			},
+		})
+	}
+
+	return nil
 }

@@ -9,6 +9,7 @@ import (
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
@@ -26,14 +27,27 @@ type ClientSvc interface {
 }
 
 func NewP2PClientService(
+	cfg config.Config,
 	d discovery.Discovery,
 	localDialer host.Host,
+	mainHost host.Host,
 ) (ClientSvc, error) {
-	csvc := &clientImpl{
-		ds: d,
-		h:  localDialer,
+
+	var services []string
+	_ = cfg.Get("Services", &services)
+
+	hostAddr := peer.AddrInfo{
+		ID:    mainHost.ID(),
+		Addrs: mainHost.Addrs(),
 	}
-	return csvc, nil
+
+	log.Debug("Client service dialer %s Localhost %s", localDialer.ID(), mainHost.ID())
+
+	return &clientImpl{
+		ds:       d,
+		h:        localDialer,
+		hostAddr: hostAddr,
+	}, nil
 }
 
 func NewP2PClientAdvertiser(
@@ -94,8 +108,10 @@ func (d *discoveryProvider) Execute(ctx context.Context) error {
 }
 
 type clientImpl struct {
-	ds discovery.Discovery
-	h  host.Host
+	ds       discovery.Discovery
+	h        host.Host
+	svcs     []string
+	hostAddr peer.AddrInfo
 }
 
 func (c *clientImpl) Get(
@@ -103,6 +119,13 @@ func (c *clientImpl) Get(
 	svc string,
 	opts ...grpc.DialOption,
 ) (*grpc.ClientConn, error) {
+
+	// Local service, dial to locally running P2P host
+	for _, v := range c.svcs {
+		if svc == v {
+			return p2pgrpc.NewP2PDialer(c.h).Dial(ctx, c.hostAddr.ID.String(), opts...)
+		}
+	}
 
 	// FindPeers is called without limit opt, so this cancel is required to release
 	// any resources used by it

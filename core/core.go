@@ -16,6 +16,7 @@ import (
 	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/modules/auth"
 	"github.com/plexsysio/go-msuite/modules/events"
+	"github.com/plexsysio/go-msuite/modules/protocols"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/taskmanager"
@@ -39,6 +40,7 @@ type Service interface {
 	HTTP() (HTTP, error)
 	Locker() (dLocker.DLocker, error)
 	Events() (events.Events, error)
+	Protocols() (protocols.ProtocolsSvc, error)
 	SharedStorage(string, sharedStorage.Callback) (store.Store, error)
 	Files() (*ipfslite.Peer, error)
 }
