@@ -27,6 +27,7 @@ import (
 	mhttp "github.com/plexsysio/go-msuite/modules/node/http"
 	"github.com/plexsysio/go-msuite/modules/node/ipfs"
 	"github.com/plexsysio/go-msuite/modules/node/locker"
+	"github.com/plexsysio/go-msuite/modules/protocols"
 	"github.com/plexsysio/go-msuite/modules/repo"
 	"github.com/plexsysio/go-msuite/modules/repo/fsrepo"
 	"github.com/plexsysio/go-msuite/modules/repo/inmem"
@@ -97,6 +98,7 @@ func New(bCfg config.Config) (core.Service, error) {
 		utils.MaybeOption(grpcsvc.Module(r.Config()), bCfg.IsSet("UseGRPC")),
 		utils.MaybeOption(mhttp.Module(r.Config()), bCfg.IsSet("UseHTTP")),
 		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
+		utils.MaybeOption(fx.Provide(protocols.New), bCfg.IsSet("UseP2P")),
 		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
 		utils.MaybeInvoke(status.RegisterHTTP, bCfg.IsSet("UseHTTP")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
@@ -181,6 +183,7 @@ type deps struct {
 	St     store.Store              `optional:"true"`
 	Jm     auth.JWTManager          `optional:"true"`
 	Ev     events.Events            `optional:"true"`
+	Pr     protocols.ProtocolsSvc   `optional:"true"`
 	Cs     grpcclient.ClientSvc     `optional:"true"`
 	ShSt   sharedStorage.Provider   `optional:"true"`
 }
@@ -283,6 +286,13 @@ func (s *impl) Locker() (dLocker.DLocker, error) {
 		return nil, errors.New("Locker not configured")
 	}
 	return s.dp.Lk, nil
+}
+
+func (s *impl) Protocols() (protocols.ProtocolsSvc, error) {
+	if s.dp.Pr == nil {
+		return nil, errors.New("Protocols svc not configured")
+	}
+	return s.dp.Pr, nil
 }
 
 func (s *impl) Events() (events.Events, error) {

@@ -163,6 +163,14 @@ func WithFiles() Option {
 	}
 }
 
+func WithBootstrapNodes(addrs ...string) Option {
+	return func(c *BuildCfg) {
+		if len(addrs) > 0 {
+			c.startupCfg.Set("BootstrapAddresses", addrs)
+		}
+	}
+}
+
 func defaultOpts(c *BuildCfg) {
 	if !c.startupCfg.Exists("Services") {
 		c.startupCfg.Set("Services", []string{"msuite"})

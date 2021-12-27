@@ -130,7 +130,7 @@ func Client(c config.Config) fx.Option {
 		utils.MaybeProvide(
 			fx.Annotate(
 				grpcclient.NewP2PClientService,
-				fx.ParamTags(``, `name:localDialer`),
+				fx.ParamTags(``, ``, `name:localDialer`, ``),
 			),
 			c.IsSet("UseP2P"),
 		),
