@@ -29,7 +29,7 @@ func (t *testMsg) Unmarshal(buf []byte) error {
 	return json.Unmarshal(buf, t)
 }
 
-func (t *testProtocol) ID() protocol.ID {
+func (testProtocol) ID() protocol.ID {
 	return protocol.ID("/testproto/1.0.0")
 }
 
@@ -42,11 +42,11 @@ func (t *testProtocol) SetSender(s protocols.Sender) {
 	t.sendMsg = s
 }
 
-func (t *testProtocol) ReqFactory() protocols.Request {
+func (testProtocol) ReqFactory() protocols.Request {
 	return new(testMsg)
 }
 
-func (t *testProtocol) RespFactory() protocols.Response {
+func (testProtocol) RespFactory() protocols.Response {
 	return new(testMsg)
 }
 
@@ -91,10 +91,8 @@ func TestProtocol(t *testing.T) {
 
 	if respMsg, ok := resp.(*testMsg); !ok {
 		t.Fatal("invalid resp msg")
-	} else {
-		if respMsg.Msg != "Hello!" {
-			t.Fatalf("invalid resp msg recvd expected %q got %q", "Hello!", respMsg.Msg)
-		}
+	} else if respMsg.Msg != "Hello!" {
+		t.Fatalf("invalid resp msg recvd expected %q got %q", "Hello!", respMsg.Msg)
 	}
 
 	resp2, err := p2.Send(context.TODO(), h1.ID(), &testMsg{Msg: "World!"})
@@ -104,10 +102,8 @@ func TestProtocol(t *testing.T) {
 
 	if respMsg2, ok := resp2.(*testMsg); !ok {
 		t.Fatal("invalid resp msg")
-	} else {
-		if respMsg2.Msg != "World!" {
-			t.Fatalf("invalid resp msg recvd expected %q got %q", "World!", respMsg2.Msg)
-		}
+	} else if respMsg2.Msg != "World!" {
+		t.Fatalf("invalid resp msg recvd expected %q got %q", "World!", respMsg2.Msg)
 	}
 
 	if p1.rcvdMsgs != 1 || p1.sentMsgs != 1 || p2.rcvdMsgs != 1 || p2.sentMsgs != 1 {

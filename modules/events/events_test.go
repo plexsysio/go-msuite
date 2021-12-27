@@ -3,6 +3,7 @@ package events_test
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"testing"
 	"time"
 
@@ -74,6 +75,7 @@ func TestEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	mtx := sync.Mutex{}
 	count1, count2 := 0, 0
 
 	ev1.RegisterHandler(func() events.Event { return new(testEvent) }, func(ev events.Event) {
@@ -84,7 +86,9 @@ func TestEvents(t *testing.T) {
 		if testEv.Msg != "hello" && testEv.Msg != "world" {
 			t.Fatal("incorrect msg in event")
 		}
+		mtx.Lock()
 		count1++
+		mtx.Unlock()
 	})
 
 	ev2.RegisterHandler(func() events.Event { return new(testEvent) }, func(ev events.Event) {
@@ -95,7 +99,9 @@ func TestEvents(t *testing.T) {
 		if testEv.Msg != "hello" && testEv.Msg != "world" {
 			t.Fatal("incorrect msg in event")
 		}
+		mtx.Lock()
 		count2++
+		mtx.Unlock()
 	})
 
 	err = ev1.Broadcast(context.TODO(), &testEvent{Msg: "hello"})
@@ -112,9 +118,12 @@ func TestEvents(t *testing.T) {
 	for {
 		time.Sleep(time.Second)
 
+		mtx.Lock()
 		if count1 == 2 && count2 == 2 {
+			mtx.Unlock()
 			break
 		}
+		mtx.Unlock()
 
 		if time.Since(started) > 3*time.Second {
 			t.Fatal("waited 3 secs for events to trigger", count1, count2)
