@@ -31,7 +31,7 @@ func (t *testEvent) Unmarshal(buf []byte) error {
 }
 
 func TestEvents(t *testing.T) {
-	logger.SetLogLevel("*", "Debug")
+	_ = logger.SetLogLevel("pubsub", "Debug")
 
 	tm1 := taskmanager.New(0, 2, time.Second)
 	tm2 := taskmanager.New(0, 2, time.Second)
@@ -46,20 +46,12 @@ func TestEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = h1.Connect(context.TODO(), peer.AddrInfo{
-		ID:    h2.ID(),
-		Addrs: h2.Addrs(),
-	})
+	psub1, err := pubsub.NewGossipSub(context.TODO(), h1, pubsub.WithFloodPublish(true))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	psub1, err := pubsub.NewGossipSub(context.TODO(), h1)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	psub2, err := pubsub.NewGossipSub(context.TODO(), h2)
+	psub2, err := pubsub.NewGossipSub(context.TODO(), h2, pubsub.WithFloodPublish(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,6 +62,14 @@ func TestEvents(t *testing.T) {
 	}
 
 	ev2, err := events.NewEventsSvc(psub2, tm2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = h1.Connect(context.TODO(), peer.AddrInfo{
+		ID:    h2.ID(),
+		Addrs: h2.Addrs(),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +112,7 @@ func TestEvents(t *testing.T) {
 	for {
 		time.Sleep(time.Second)
 
-		if count1 == 1 && count2 == 1 {
+		if count1 == 2 && count2 == 2 {
 			break
 		}
 

@@ -130,7 +130,7 @@ func NewNode(
 }
 
 func Pubsub(ctx context.Context, h host.Host) (*pubsub.PubSub, error) {
-	return pubsub.NewGossipSub(ctx, h)
+	return pubsub.NewGossipSub(ctx, h, pubsub.WithFloodPublish(true))
 }
 
 func NewSvcDiscovery(r routing.Routing) discovery.Discovery {
