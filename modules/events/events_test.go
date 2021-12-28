@@ -8,9 +8,10 @@ import (
 	"time"
 
 	logger "github.com/ipfs/go-log/v2"
-	"github.com/libp2p/go-libp2p"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/peer"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/plexsysio/go-msuite/modules/events"
 	"github.com/plexsysio/taskmanager"
 )
@@ -37,22 +38,22 @@ func TestEvents(t *testing.T) {
 	tm1 := taskmanager.New(0, 2, time.Second)
 	tm2 := taskmanager.New(0, 2, time.Second)
 
-	h1, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
+	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
+	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
+
+	t.Cleanup(func() {
+		tm1.Stop()
+		tm2.Stop()
+		h1.Close()
+		h2.Close()
+	})
+
+	psub1, err := pubsub.NewFloodSub(context.TODO(), h1)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	h2, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	psub1, err := pubsub.NewGossipSub(context.TODO(), h1, pubsub.WithFloodPublish(true))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	psub2, err := pubsub.NewGossipSub(context.TODO(), h2, pubsub.WithFloodPublish(true))
+	psub2, err := pubsub.NewFloodSub(context.TODO(), h2)
 	if err != nil {
 		t.Fatal(err)
 	}
