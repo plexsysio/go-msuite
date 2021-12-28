@@ -77,23 +77,24 @@ func (s *service) Register(p Protocol) {
 
 		err := rdr.ReadMsg(req)
 		if err != nil {
+			_ = stream.Reset()
 			log.Error("failed reading stream", err)
 			return
 		}
 
 		resp, err := p.HandleMsg(req, stream.Conn().RemotePeer())
 		if err != nil {
+			_ = stream.Reset()
 			log.Error("HandleMsg returned error", err)
 			return
 		}
 
 		err = wrtr.WriteMsg(resp)
 		if err != nil {
+			_ = stream.Reset()
 			log.Error("failed to write msg on wire", err)
 			return
 		}
-
-		stream.Close()
 	})
 	p.SetSender(func(ctx context.Context, id peer.ID, req Request) (Response, error) {
 		return s.SendMsg(ctx, id, p, req)

@@ -25,6 +25,7 @@ import (
 	grpcclient "github.com/plexsysio/go-msuite/modules/grpc/client"
 	grpcsvc "github.com/plexsysio/go-msuite/modules/node/grpc"
 	mhttp "github.com/plexsysio/go-msuite/modules/node/http"
+	"github.com/plexsysio/go-msuite/modules/node/internal/mesher"
 	"github.com/plexsysio/go-msuite/modules/node/ipfs"
 	"github.com/plexsysio/go-msuite/modules/node/locker"
 	"github.com/plexsysio/go-msuite/modules/protocols"
@@ -99,6 +100,7 @@ func New(bCfg config.Config) (core.Service, error) {
 		utils.MaybeOption(mhttp.Module(r.Config()), bCfg.IsSet("UseHTTP")),
 		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
 		utils.MaybeOption(fx.Provide(protocols.New), bCfg.IsSet("UseP2P")),
+		utils.MaybeOption(fx.Invoke(mesher.New), bCfg.IsSet("UseP2P")),
 		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
 		utils.MaybeInvoke(status.RegisterHTTP, bCfg.IsSet("UseHTTP")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {

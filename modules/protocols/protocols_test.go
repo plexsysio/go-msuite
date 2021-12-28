@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/libp2p/go-libp2p"
+	bhost "github.com/libp2p/go-libp2p-blankhost"
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/libp2p/go-libp2p-core/protocol"
+	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
 	"github.com/plexsysio/go-msuite/modules/protocols"
 )
 
@@ -57,17 +58,15 @@ func (t *testProtocol) Send(ctx context.Context, p peer.ID, msg protocols.Messag
 
 func TestProtocol(t *testing.T) {
 
-	h1, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
+	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
 
-	h2, err := libp2p.New(libp2p.ListenAddrStrings("/ip4/127.0.0.1/tcp/0"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Cleanup(func() {
+		h1.Close()
+		h2.Close()
+	})
 
-	err = h1.Connect(context.TODO(), peer.AddrInfo{
+	err := h1.Connect(context.TODO(), peer.AddrInfo{
 		ID:    h2.ID(),
 		Addrs: h2.Addrs(),
 	})
