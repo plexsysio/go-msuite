@@ -69,7 +69,9 @@ func New(h host.Host) ProtocolsSvc {
 
 func (s *service) Register(p Protocol) {
 	s.h.SetStreamHandler(p.ID(), func(stream network.Stream) {
-		defer stream.Reset()
+		defer func() {
+			_ = stream.Reset()
+		}()
 
 		_ = stream.SetDeadline(time.Now().Add(defaultTimeout))
 
