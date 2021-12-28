@@ -120,7 +120,8 @@ func TestEvents(t *testing.T) {
 		time.Sleep(time.Second)
 
 		mtx.Lock()
-		if count1 == 2 && count2 == 2 {
+		// Event can be fired on both nodes or on only 1
+		if count1 > 1 && count2 > 1 {
 			mtx.Unlock()
 			break
 		}
