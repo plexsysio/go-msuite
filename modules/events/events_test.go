@@ -121,7 +121,7 @@ func TestEvents(t *testing.T) {
 
 		mtx.Lock()
 		// Event can be fired on both nodes or on only 1
-		if count1 > 1 && count2 > 1 {
+		if count1 > 0 && count2 > 0 {
 			mtx.Unlock()
 			break
 		}
