@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"time"
 
@@ -69,9 +68,6 @@ func New(h host.Host) ProtocolsSvc {
 
 func (s *service) Register(p Protocol) {
 	s.h.SetStreamHandler(p.ID(), func(stream network.Stream) {
-		defer func() {
-			_ = stream.Reset()
-		}()
 
 		_ = stream.SetDeadline(time.Now().Add(defaultTimeout))
 
@@ -81,18 +77,21 @@ func (s *service) Register(p Protocol) {
 
 		err := rdr.ReadMsg(req)
 		if err != nil {
+			_ = stream.Reset()
 			log.Error("failed reading stream", err)
 			return
 		}
 
 		resp, err := p.HandleMsg(req, stream.Conn().RemotePeer())
 		if err != nil {
+			_ = stream.Reset()
 			log.Error("HandleMsg returned error", err)
 			return
 		}
 
 		err = wrtr.WriteMsg(resp)
 		if err != nil {
+			_ = stream.Reset()
 			log.Error("failed to write msg on wire", err)
 			return
 		}
@@ -169,7 +168,6 @@ func newWriter(stream network.Stream) *msgWriter {
 func (m *msgWriter) WriteMsg(msg Message) error {
 	msgBuf, err := msg.Marshal()
 	if err != nil {
-		fmt.Println("failed marshaling")
 		return err
 	}
 
