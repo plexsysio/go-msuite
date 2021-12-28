@@ -10,8 +10,8 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peerstore"
 	swarmt "github.com/libp2p/go-libp2p-swarm/testing"
+	"github.com/plexsysio/go-msuite/modules/node/internal/mesher"
 	"github.com/plexsysio/go-msuite/modules/protocols"
-	"github.com/plexsysio/go-msuite/modules/protocols/internal/mesher"
 	"github.com/plexsysio/taskmanager"
 )
 
@@ -21,10 +21,10 @@ func TestMesher(t *testing.T) {
 
 	_ = logger.SetLogLevel("proto/mesher", "Debug")
 
-	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
-	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
-	h3 := bhost.NewBlankHost(swarmt.GenSwarm(t))
-	h4 := bhost.NewBlankHost(swarmt.GenSwarm(t))
+	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
+	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
+	h3 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
+	h4 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
 
 	tm := taskmanager.New(0, 10, time.Second)
 

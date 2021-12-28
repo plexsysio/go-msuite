@@ -38,8 +38,8 @@ func TestEvents(t *testing.T) {
 	tm1 := taskmanager.New(0, 2, time.Second)
 	tm2 := taskmanager.New(0, 2, time.Second)
 
-	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
-	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
+	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
+	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
 
 	t.Cleanup(func() {
 		tm1.Stop()
