@@ -58,8 +58,8 @@ func (t *testProtocol) Send(ctx context.Context, p peer.ID, msg protocols.Messag
 
 func TestProtocol(t *testing.T) {
 
-	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t))
-	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t))
+	h1 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
+	h2 := bhost.NewBlankHost(swarmt.GenSwarm(t, swarmt.OptDisableQUIC))
 
 	t.Cleanup(func() {
 		h1.Close()
