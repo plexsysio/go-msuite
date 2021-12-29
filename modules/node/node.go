@@ -98,10 +98,19 @@ func New(bCfg config.Config) (core.Service, error) {
 		utils.MaybeOption(ipfs.FilesModule, bCfg.IsSet("UseP2P") && bCfg.IsSet("UseFiles")),
 		utils.MaybeOption(grpcsvc.Module(r.Config()), bCfg.IsSet("UseGRPC")),
 		utils.MaybeOption(mhttp.Module(r.Config()), bCfg.IsSet("UseHTTP")),
-		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
-		utils.MaybeOption(fx.Provide(protocols.New), bCfg.IsSet("UseP2P")),
-		utils.MaybeOption(fx.Invoke(mesher.New), bCfg.IsSet("UseP2P")),
-		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
+		utils.MaybeProvide(events.NewEventsSvc, bCfg.IsSet("UseP2P")),
+		utils.MaybeProvide(
+			fx.Annotate(protocols.New, fx.ParamTags(`name:"mainHost"`)),
+			bCfg.IsSet("UseP2P"),
+		),
+		utils.MaybeInvoke(
+			fx.Annotate(mesher.New, fx.ParamTags(``, `name:"mainHost"`)),
+			bCfg.IsSet("UseP2P"),
+		),
+		utils.MaybeProvide(
+			fx.Annotate(sharedStorage.NewSharedStoreProvider, fx.ParamTags(``, ``, `name:"mainHost"`, ``)),
+			bCfg.IsSet("UseP2P"),
+		),
 		utils.MaybeInvoke(status.RegisterHTTP, bCfg.IsSet("UseHTTP")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
@@ -177,7 +186,7 @@ type deps struct {
 	Rsrv   *grpc.Server             `optional:"true"`
 	Mx     *http.ServeMux           `optional:"true"`
 	Gmx    *runtime.ServeMux        `optional:"true"`
-	H      host.Host                `optional:"true"`
+	H      host.Host                `name:"mainHost" optional:"true"`
 	Dht    routing.Routing          `optional:"true"`
 	P      *ipfslite.Peer           `optional:"true"`
 	Ps     *pubsub.PubSub           `optional:"true"`

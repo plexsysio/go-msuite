@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
@@ -41,12 +42,15 @@ func NewP2PClientService(
 		Addrs: mainHost.Addrs(),
 	}
 
-	log.Debug("Client service dialer %s Localhost %s", localDialer.ID(), mainHost.ID())
+	localDialer.Peerstore().AddAddrs(hostAddr.ID, hostAddr.Addrs, peerstore.PermanentAddrTTL)
+
+	log.Debugf("Client service dialer %s Localhost %s", localDialer.ID(), mainHost.ID())
 
 	return &clientImpl{
 		ds:       d,
 		h:        localDialer,
 		hostAddr: hostAddr,
+		svcs:     services,
 	}, nil
 }
 

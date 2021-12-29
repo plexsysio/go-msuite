@@ -92,7 +92,7 @@ func Transport(c config.Config) fx.Option {
 	return fx.Options(
 		fx.Provide(NewMuxedListener),
 		utils.MaybeProvide(NewTCPListener, c.IsSet("UseTCP")),
-		utils.MaybeProvide(NewP2PListener, c.IsSet("UseP2PGRPC")),
+		utils.MaybeProvide(fx.Annotate(NewP2PListener, fx.ParamTags(`name:"mainHost"`)), c.IsSet("UseP2PGRPC")),
 		utils.MaybeProvide(NewUDSListener, c.IsSet("UseUDS")),
 	)
 }
@@ -130,7 +130,7 @@ func Client(c config.Config) fx.Option {
 		utils.MaybeProvide(
 			fx.Annotate(
 				grpcclient.NewP2PClientService,
-				fx.ParamTags(``, ``, `name:localDialer`, ``),
+				fx.ParamTags(``, ``, `name:"localDialer"`, `name:"mainHost"`),
 			),
 			c.IsSet("UseP2P"),
 		),
