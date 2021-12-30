@@ -74,7 +74,7 @@ func (service) RespFactory() protocols.Response { return new(peersList) }
 
 func (s *service) SetSender(sender protocols.Sender) { s.send = sender }
 
-func (s *service) HandleMsg(req protocols.Request, p peer.ID) (protocols.Response, error) {
+func (s *service) HandleMsg(req protocols.Request, _ peer.ID) (protocols.Response, error) {
 	peers, ok := req.(*peersList)
 	if !ok {
 		return nil, errors.New("incorrect msg received")
