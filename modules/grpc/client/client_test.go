@@ -70,12 +70,12 @@ type testDiscovery struct {
 	addr peer.AddrInfo
 }
 
-func (t *testDiscovery) Advertise(ctx context.Context, ns string, opts ...discovery.Option) (time.Duration, error) {
+func (t *testDiscovery) Advertise(_ context.Context, ns string, _ ...discovery.Option) (time.Duration, error) {
 	t.adv <- ns
 	return time.Second, nil
 }
 
-func (t *testDiscovery) FindPeers(ctx context.Context, ns string, opts ...discovery.Option) (<-chan peer.AddrInfo, error) {
+func (t *testDiscovery) FindPeers(_ context.Context, _ string, _ ...discovery.Option) (<-chan peer.AddrInfo, error) {
 	res := make(chan peer.AddrInfo)
 	go func() {
 		res <- t.addr

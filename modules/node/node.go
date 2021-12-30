@@ -297,10 +297,6 @@ func (s *impl) Client(ctx context.Context, name string, opts ...grpc.DialOption)
 	return nil, err
 }
 
-func (s *impl) Get(ctx context.Context, svc string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	return nil, errors.New("client service not configured")
-}
-
 func (s *impl) HTTP() (core.HTTP, error) {
 	if s.dp.Mx == nil {
 		return nil, errors.New("HTTP service not configured")
