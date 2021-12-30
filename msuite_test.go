@@ -3,7 +3,7 @@ package msuite_test
 import (
 	"context"
 	"encoding/base64"
-	"errors"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -13,6 +13,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/plexsysio/go-msuite"
 	"github.com/plexsysio/go-msuite/core"
+	"google.golang.org/grpc"
 )
 
 func TestMain(m *testing.M) {
@@ -95,6 +96,44 @@ func MustFiles(t *testing.T, m core.Service, exists bool) {
 	}
 }
 
+func MustProtocols(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Protocols()
+	if err == nil && !exists {
+		t.Fatal("expected error accessing protocols svc")
+	}
+}
+
+func MustTracing(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Tracing()
+	if err == nil && !exists {
+		t.Fatal("expected error accessing tracer")
+	}
+}
+
+func MustMetrics(t *testing.T, m core.Service, exists bool) {
+	t.Helper()
+
+	_, err := m.Metrics()
+	if err == nil && !exists {
+		t.Fatal("expected error accessing metrics registry")
+	}
+}
+
+func checkHTMLOK(t *testing.T, url string) {
+	resp, err := http.Get(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatal("invalid status code", resp.StatusCode)
+	}
+}
+
 func TestBasicNew(t *testing.T) {
 	defer os.RemoveAll("tmp")
 	app, err := msuite.New(
@@ -109,21 +148,25 @@ func TestBasicNew(t *testing.T) {
 	MustHTTP(t, app, false)
 	MustLocker(t, app, false)
 	MustEvents(t, app, false)
+	MustProtocols(t, app, false)
 	MustAuth(t, app, false)
 	MustSharedStorage(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
 	time.Sleep(time.Millisecond * 100)
+
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
 	}
 }
 
-func TestTM(t *testing.T) {
+func TestAuth(t *testing.T) {
 	app, err := msuite.New(
 		msuite.WithTaskManager(5, 100),
 		// Auth without P2P should initialize OK
@@ -139,7 +182,10 @@ func TestTM(t *testing.T) {
 	MustHTTP(t, app, false)
 	MustLocker(t, app, false)
 	MustEvents(t, app, false)
+	MustProtocols(t, app, false)
 	MustSharedStorage(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
@@ -152,7 +198,7 @@ func TestTM(t *testing.T) {
 	}
 }
 
-func TestNode(t *testing.T) {
+func TestP2P(t *testing.T) {
 	app, err := msuite.New(
 		msuite.WithP2P(10000),
 	)
@@ -162,12 +208,15 @@ func TestNode(t *testing.T) {
 
 	MustP2P(t, app, true)
 	MustEvents(t, app, true)
+	MustProtocols(t, app, true)
 	MustSharedStorage(t, app, true)
 	MustGRPC(t, app, false)
 	MustHTTP(t, app, false)
 	MustLocker(t, app, false)
 	MustAuth(t, app, false)
 	MustFiles(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
@@ -195,14 +244,20 @@ func TestHTTP(t *testing.T) {
 	MustGRPC(t, app, false)
 	MustLocker(t, app, false)
 	MustEvents(t, app, false)
+	MustProtocols(t, app, false)
 	MustAuth(t, app, false)
 	MustSharedStorage(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
 	time.Sleep(time.Millisecond * 100)
+
+	checkHTMLOK(t, "http://localhost:10000/status")
+
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())
@@ -229,10 +284,13 @@ func TestGRPCLockerAuth(t *testing.T) {
 	MustGRPC(t, app, true)
 	MustLocker(t, app, true)
 	MustEvents(t, app, true)
+	MustProtocols(t, app, true)
 	MustAuth(t, app, true)
 	MustSharedStorage(t, app, true)
 	MustFiles(t, app, true)
 	MustHTTP(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
@@ -266,7 +324,7 @@ func TestPrivateKey(t *testing.T) {
 	}
 
 	app, err := msuite.New(
-		msuite.WithServiceName("test"),
+		msuite.WithServices("test"),
 		msuite.WithP2PPrivateKey(sk),
 		msuite.WithRepositoryRoot("tmp"),
 		msuite.WithP2P(10000),
@@ -277,11 +335,14 @@ func TestPrivateKey(t *testing.T) {
 
 	MustP2P(t, app, true)
 	MustEvents(t, app, true)
+	MustProtocols(t, app, true)
 	MustSharedStorage(t, app, true)
 	MustGRPC(t, app, false)
 	MustLocker(t, app, false)
 	MustAuth(t, app, false)
 	MustHTTP(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
 
 	identity := map[string]interface{}{}
 
@@ -316,65 +377,91 @@ func TestPrivateKey(t *testing.T) {
 	}
 }
 
-func TestServices(t *testing.T) {
-	defer os.RemoveAll("tmp5")
-
+func TestDiag(t *testing.T) {
 	app, err := msuite.New(
-		msuite.WithServiceName("test"),
-		msuite.WithRepositoryRoot("tmp5"),
-		msuite.WithGRPC("tcp", 10000),
-		msuite.WithStaticDiscovery(map[string]string{
-			"svc1": "IP1",
-			"svc2": "IP2",
-		}),
-		msuite.WithService("testErr", func(_ core.Service) error {
-			return errors.New("dummy error")
-		}),
-	)
-	if err == nil || app != nil {
-		t.Fatal("Expected error while creating new msuite instance")
-	}
-
-	time.Sleep(time.Second)
-
-	initCalled := false
-
-	app, err = msuite.New(
-		msuite.WithServiceName("test"),
-		msuite.WithGRPC("tcp", 10000),
-		msuite.WithHTTP(10001),
+		msuite.WithHTTP(10000),
 		msuite.WithPrometheus(true),
 		msuite.WithDebug(),
-		msuite.WithStaticDiscovery(map[string]string{
-			"svc1": "IP1",
-			"svc2": "IP2",
-		}),
-		msuite.WithService("testErr", func(_ core.Service) error {
-			initCalled = true
-			return nil
-		}),
 	)
 	if err != nil {
 		t.Fatal("Failed creating new msuite instance", err)
 	}
 
-	if !initCalled {
-		t.Fatal("service not initialized")
-	}
-
-	MustGRPC(t, app, true)
 	MustHTTP(t, app, true)
+	MustMetrics(t, app, true)
 	MustP2P(t, app, false)
-	MustEvents(t, app, false)
-	MustSharedStorage(t, app, false)
+	MustGRPC(t, app, false)
 	MustLocker(t, app, false)
+	MustEvents(t, app, false)
+	MustProtocols(t, app, false)
 	MustAuth(t, app, false)
+	MustSharedStorage(t, app, false)
+	MustTracing(t, app, false)
 
 	err = app.Start(context.Background())
 	if err != nil {
 		t.Fatal("Failed starting app", err.Error())
 	}
 	time.Sleep(time.Millisecond * 100)
+
+	checkHTMLOK(t, "http://localhost:10000/debug/pprof/")
+	checkHTMLOK(t, "http://localhost:10000/metrics")
+
+	err = app.Stop(context.Background())
+	if err != nil {
+		t.Fatal("Failed stopping app", err.Error())
+	}
+}
+
+func TestMultiClient(t *testing.T) {
+	_ = logger.SetLogLevel("grpc/lmux", "Debug")
+
+	app, err := msuite.New(
+		msuite.WithServices("svc2"),
+		msuite.WithP2P(10000),
+		msuite.WithGRPC("unix", "/tmp/sock"),
+		msuite.WithGRPC("p2p", nil),
+		msuite.WithStaticDiscovery(map[string]string{
+			"svc1": "/tmp/sock",
+		}),
+	)
+	if err != nil {
+		t.Fatal("Failed creating new msuite instance", err)
+	}
+
+	t.Cleanup(func() { _ = os.RemoveAll("/tmp/sock") })
+
+	MustP2P(t, app, true)
+	MustGRPC(t, app, true)
+	MustEvents(t, app, true)
+	MustProtocols(t, app, true)
+	MustSharedStorage(t, app, true)
+	MustAuth(t, app, false)
+	MustHTTP(t, app, false)
+	MustLocker(t, app, false)
+	MustTracing(t, app, false)
+	MustMetrics(t, app, false)
+
+	err = app.Start(context.Background())
+	if err != nil {
+		t.Fatal("Failed starting app", err.Error())
+	}
+	time.Sleep(time.Millisecond * 100)
+
+	grpcApi, _ := app.GRPC()
+
+	conn, err := grpcApi.Client(context.TODO(), "svc1", grpc.WithInsecure())
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.Close()
+
+	conn, err = grpcApi.Client(context.TODO(), "svc2", grpc.WithInsecure())
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn.Close()
+
 	err = app.Stop(context.Background())
 	if err != nil {
 		t.Fatal("Failed stopping app", err.Error())

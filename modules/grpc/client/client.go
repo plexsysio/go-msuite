@@ -4,12 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"os"
 	"time"
 
 	logger "github.com/ipfs/go-log/v2"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/peer"
+	"github.com/libp2p/go-libp2p-core/peerstore"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
@@ -41,12 +44,15 @@ func NewP2PClientService(
 		Addrs: mainHost.Addrs(),
 	}
 
-	log.Debug("Client service dialer %s Localhost %s", localDialer.ID(), mainHost.ID())
+	localDialer.Peerstore().AddAddrs(hostAddr.ID, hostAddr.Addrs, peerstore.PermanentAddrTTL)
+
+	log.Debugf("Client service dialer %s Localhost %s", localDialer.ID(), mainHost.ID())
 
 	return &clientImpl{
 		ds:       d,
 		h:        localDialer,
 		hostAddr: hostAddr,
+		svcs:     services,
 	}, nil
 }
 
@@ -177,5 +183,36 @@ func (c *staticClientImpl) Get(
 	if !ok {
 		return nil, errors.New("service address not configured")
 	}
+
+	dialer := func(ctx context.Context, addr string) (net.Conn, error) {
+		var (
+			conn net.Conn
+			err  error
+			done = make(chan struct{})
+		)
+		go func() {
+			defer close(done)
+
+			if ipAddr := net.ParseIP(addr); ipAddr != nil {
+				conn, err = net.Dial("tcp", addr)
+				return
+			}
+			if _, e := os.Stat(addr); e == nil {
+				conn, err = net.Dial("unix", addr)
+				return
+			}
+			err = fmt.Errorf("transport not supported %s", addr)
+		}()
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-done:
+			return conn, err
+		}
+	}
+
+	opts = append(opts, grpc.WithContextDialer(dialer))
+
 	return grpc.DialContext(ctx, addr, opts...)
 }

@@ -109,6 +109,7 @@ func LocalDialer(
 			return h.Close()
 		},
 	})
+	log.Debug("created local dialer", h.ID())
 	return h, nil
 }
 

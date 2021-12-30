@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/dLocker"
 	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/core"
@@ -35,6 +36,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/go-msuite/utils"
 	"github.com/plexsysio/taskmanager"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
@@ -98,10 +100,19 @@ func New(bCfg config.Config) (core.Service, error) {
 		utils.MaybeOption(ipfs.FilesModule, bCfg.IsSet("UseP2P") && bCfg.IsSet("UseFiles")),
 		utils.MaybeOption(grpcsvc.Module(r.Config()), bCfg.IsSet("UseGRPC")),
 		utils.MaybeOption(mhttp.Module(r.Config()), bCfg.IsSet("UseHTTP")),
-		utils.MaybeOption(fx.Provide(events.NewEventsSvc), bCfg.IsSet("UseP2P")),
-		utils.MaybeOption(fx.Provide(protocols.New), bCfg.IsSet("UseP2P")),
-		utils.MaybeOption(fx.Invoke(mesher.New), bCfg.IsSet("UseP2P")),
-		utils.MaybeOption(fx.Provide(sharedStorage.NewSharedStoreProvider), bCfg.IsSet("UseP2P")),
+		utils.MaybeProvide(events.NewEventsSvc, bCfg.IsSet("UseP2P")),
+		utils.MaybeProvide(
+			fx.Annotate(protocols.New, fx.ParamTags(`name:"mainHost"`)),
+			bCfg.IsSet("UseP2P"),
+		),
+		utils.MaybeInvoke(
+			fx.Annotate(mesher.New, fx.ParamTags(``, `name:"mainHost"`)),
+			bCfg.IsSet("UseP2P"),
+		),
+		utils.MaybeProvide(
+			fx.Annotate(sharedStorage.NewSharedStoreProvider, fx.ParamTags(``, ``, `name:"mainHost"`, ``)),
+			bCfg.IsSet("UseP2P"),
+		),
 		utils.MaybeInvoke(status.RegisterHTTP, bCfg.IsSet("UseHTTP")),
 		fx.Invoke(func(lc fx.Lifecycle, cancel context.CancelFunc) {
 			lc.Append(fx.Hook{
@@ -177,17 +188,19 @@ type deps struct {
 	Rsrv   *grpc.Server             `optional:"true"`
 	Mx     *http.ServeMux           `optional:"true"`
 	Gmx    *runtime.ServeMux        `optional:"true"`
-	H      host.Host                `optional:"true"`
+	H      host.Host                `name:"mainHost" optional:"true"`
 	Dht    routing.Routing          `optional:"true"`
 	P      *ipfslite.Peer           `optional:"true"`
 	Ps     *pubsub.PubSub           `optional:"true"`
 	Disc   discovery.Discovery      `optional:"true"`
-	St     store.Store              `optional:"true"`
 	Jm     auth.JWTManager          `optional:"true"`
 	Ev     events.Events            `optional:"true"`
 	Pr     protocols.ProtocolsSvc   `optional:"true"`
-	Cs     grpcclient.ClientSvc     `optional:"true"`
+	PCs    grpcclient.ClientSvc     `name:"p2pClientSvc" optional:"true"`
+	SCs    grpcclient.ClientSvc     `name:"staticClientSvc" optional:"true"`
 	ShSt   sharedStorage.Provider   `optional:"true"`
+	Trcr   opentracing.Tracer       `optional:"true"`
+	Mtrcs  *prometheus.Registry     `optional:"true"`
 }
 
 type impl struct {
@@ -262,10 +275,26 @@ func (s *impl) Server() *grpc.Server {
 }
 
 func (s *impl) Client(ctx context.Context, name string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	if s.dp.Cs == nil {
+	if s.dp.PCs == nil && s.dp.SCs == nil {
 		return nil, errors.New("Service discovery not configured")
 	}
-	return s.dp.Cs.Get(ctx, name, opts...)
+	var (
+		conn *grpc.ClientConn
+		err  error
+	)
+	if s.dp.SCs != nil {
+		conn, err = s.dp.SCs.Get(ctx, name, opts...)
+		if err == nil {
+			return conn, nil
+		}
+	}
+	if s.dp.PCs != nil {
+		conn, err := s.dp.PCs.Get(ctx, name, opts...)
+		if err == nil {
+			return conn, nil
+		}
+	}
+	return nil, err
 }
 
 func (s *impl) HTTP() (core.HTTP, error) {
@@ -309,4 +338,18 @@ func (s *impl) SharedStorage(ns string, cb sharedStorage.Callback) (store.Store,
 		return nil, errors.New("shared storage provider not configured")
 	}
 	return s.dp.ShSt.SharedStorage(ns, cb)
+}
+
+func (s *impl) Tracing() (opentracing.Tracer, error) {
+	if s.dp.Trcr == nil {
+		return nil, errors.New("tracing not configured")
+	}
+	return s.dp.Trcr, nil
+}
+
+func (s *impl) Metrics() (*prometheus.Registry, error) {
+	if s.dp.Mtrcs == nil {
+		return nil, errors.New("metrics not enabled")
+	}
+	return s.dp.Mtrcs, nil
 }

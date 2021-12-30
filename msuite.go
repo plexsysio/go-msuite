@@ -13,7 +13,6 @@ import (
 
 type BuildCfg struct {
 	startupCfg config.Config
-	services   map[string]func(core.Service) error
 }
 
 type Option func(c *BuildCfg)
@@ -97,11 +96,8 @@ func WithRepositoryRoot(path string) Option {
 	}
 }
 
-func WithServiceName(name string) Option {
+func WithServices(services ...string) Option {
 	return func(c *BuildCfg) {
-		var services []string
-		_ = c.startupCfg.Get("Services", &services)
-		services = append(services, name)
 		c.startupCfg.Set("Services", services)
 	}
 }
@@ -145,12 +141,6 @@ func WithStaticDiscovery(svcAddrs map[string]string) Option {
 	}
 }
 
-func WithService(name string, initFn func(core.Service) error) Option {
-	return func(c *BuildCfg) {
-		c.services[name] = initFn
-	}
-}
-
 func WithDebug() Option {
 	return func(c *BuildCfg) {
 		c.startupCfg.Set("UseDebug", true)
@@ -175,19 +165,11 @@ func defaultOpts(c *BuildCfg) {
 	if !c.startupCfg.Exists("Services") {
 		c.startupCfg.Set("Services", []string{"msuite"})
 	}
-
-	var services []string
-	_ = c.startupCfg.Get("Services", &services)
-	for k := range c.services {
-		services = append(services, k)
-	}
-	c.startupCfg.Set("Services", services)
 }
 
 func New(opts ...Option) (core.Service, error) {
 	bCfg := &BuildCfg{
 		startupCfg: jsonConf.DefaultConfig(),
-		services:   make(map[string]func(core.Service) error),
 	}
 	for _, opt := range opts {
 		opt(bCfg)
@@ -198,13 +180,6 @@ func New(opts ...Option) (core.Service, error) {
 	svc, err := node.New(bCfg.startupCfg)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, initFn := range bCfg.services {
-		err = initFn(svc)
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	return svc, nil
