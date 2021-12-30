@@ -24,7 +24,7 @@ For the public API please go through the `core` package
    - [Pubsub](https://github.com/libp2p/go-libp2p-pubsub) and [Discovery](https://github.com/libp2p/go-libp2p-discovery) are also supported using libp2p.
 
 - RPC Transport
-   - There are multiple transports available. Users can start `go-msuite` using just TCP transport as well, libp2p is completely optional. That said, gRPC services registered on `go-msuite` are available on all the transports that are configured.
+   - There are multiple transports available. Users can start `go-msuite` using just TCP/UDS transport as well, libp2p is completely optional. That said, gRPC services registered on `go-msuite` are available on all the transports that are configured.
    - Users can configure ports for different transports
 
 - Authentication
@@ -50,7 +50,8 @@ For the public API please go through the `core` package
 - Diagnostics
    - HTTP endpoint for showing diagnostic information of `go-msuite`. This shows status of different servers and routines started by the user. Users can add information to this and observe it from the HTTP interface. If the routines are created using `taskmanager`, the `Status` interface of `taskmanager` can be used to print status of the workers on the HTTP endpoints.
    - `pprof` HTTP handlers can be enabled for debugging
-   - `prometheus` HTTP handler can also be enabled if metrics is enabled. It should be possible to use the same registry to add metrics in user apps as well in future.
+   - `prometheus` HTTP handler can also be enabled if metrics is enabled. It should be possible to use the same registry to add metrics in user apps.
+   - `opentracing-tracer` can be configured. Both the gRPC services and HTTP services will be able to use this. Additionally user can access the tracer to add more custom traces.
 
 - Service discovery
    - Each `go-msuite` instance or individual service can be started with a particular name. This name can be then used to connect to it from other `go-msuite` nodes. Currently, it uses libp2p discovery underneath as mentioned above.
@@ -63,13 +64,11 @@ For the public API please go through the `core` package
 	import github.com/plexsysio/go-msuite
 
 	svc, err := msuite.New(
-		msuite.WithServiceName("HelloWorld"),
+		msuite.WithServices("Hello", "World"),
 		msuite.WithHTTP(8080),
 		msuite.WithP2P(10000),
 		msuite.WithGRPC("tcp", 10001),
-		msuite.WithService("anotherservice", func(cs core.Service) error {
-			// Use cs here to initialize your components
-		}),
+		msuite.WithGRPC("p2p", nil),
 	)
 
 	// write your app which uses the different subsystems from svc
