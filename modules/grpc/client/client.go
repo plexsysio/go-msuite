@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
+	"os"
 	"time"
 
 	logger "github.com/ipfs/go-log/v2"
@@ -181,5 +183,36 @@ func (c *staticClientImpl) Get(
 	if !ok {
 		return nil, errors.New("service address not configured")
 	}
+
+	dialer := func(ctx context.Context, addr string) (net.Conn, error) {
+		var (
+			conn net.Conn
+			err  error
+			done = make(chan struct{})
+		)
+		go func() {
+			defer close(done)
+
+			if ipAddr := net.ParseIP(addr); ipAddr != nil {
+				conn, err = net.Dial("tcp", addr)
+				return
+			}
+			if _, err := os.Stat(addr); err == nil {
+				conn, err = net.Dial("unix", addr)
+				return
+			}
+			err = fmt.Errorf("transport not supported %s", addr)
+		}()
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-done:
+			return conn, err
+		}
+	}
+
+	opts = append(opts, grpc.WithContextDialer(dialer))
+
 	return grpc.DialContext(ctx, addr, opts...)
 }

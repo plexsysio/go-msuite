@@ -14,6 +14,7 @@ import (
 	"github.com/libp2p/go-libp2p-core/host"
 	"github.com/libp2p/go-libp2p-core/routing"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/opentracing/opentracing-go"
 	"github.com/plexsysio/dLocker"
 	store "github.com/plexsysio/gkvstore"
 	"github.com/plexsysio/go-msuite/core"
@@ -35,6 +36,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/sharedStorage"
 	"github.com/plexsysio/go-msuite/utils"
 	"github.com/plexsysio/taskmanager"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/fx"
 	"google.golang.org/grpc"
 )
@@ -191,12 +193,14 @@ type deps struct {
 	P      *ipfslite.Peer           `optional:"true"`
 	Ps     *pubsub.PubSub           `optional:"true"`
 	Disc   discovery.Discovery      `optional:"true"`
-	St     store.Store              `optional:"true"`
 	Jm     auth.JWTManager          `optional:"true"`
 	Ev     events.Events            `optional:"true"`
 	Pr     protocols.ProtocolsSvc   `optional:"true"`
-	Cs     grpcclient.ClientSvc     `optional:"true"`
+	PCs    grpcclient.ClientSvc     `name:"p2pClientSvc" optional:"true"`
+	SCs    grpcclient.ClientSvc     `name:"staticClientSvc" optional:"true"`
 	ShSt   sharedStorage.Provider   `optional:"true"`
+	Trcr   opentracing.Tracer       `optional:"true"`
+	Mtrcs  *prometheus.Registry     `optional:"true"`
 }
 
 type impl struct {
@@ -271,10 +275,30 @@ func (s *impl) Server() *grpc.Server {
 }
 
 func (s *impl) Client(ctx context.Context, name string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
-	if s.dp.Cs == nil {
+	if s.dp.PCs == nil && s.dp.SCs == nil {
 		return nil, errors.New("Service discovery not configured")
 	}
-	return s.dp.Cs.Get(ctx, name, opts...)
+	var (
+		conn *grpc.ClientConn
+		err  error
+	)
+	if s.dp.SCs != nil {
+		conn, err = s.dp.SCs.Get(ctx, name, opts...)
+		if err == nil {
+			return conn, nil
+		}
+	}
+	if s.dp.PCs != nil {
+		conn, err := s.dp.PCs.Get(ctx, name, opts...)
+		if err == nil {
+			return conn, nil
+		}
+	}
+	return nil, err
+}
+
+func (s *impl) Get(ctx context.Context, svc string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
+	return nil, errors.New("client service not configured")
 }
 
 func (s *impl) HTTP() (core.HTTP, error) {
@@ -318,4 +342,18 @@ func (s *impl) SharedStorage(ns string, cb sharedStorage.Callback) (store.Store,
 		return nil, errors.New("shared storage provider not configured")
 	}
 	return s.dp.ShSt.SharedStorage(ns, cb)
+}
+
+func (s *impl) Tracing() (opentracing.Tracer, error) {
+	if s.dp.Trcr == nil {
+		return nil, errors.New("tracing not configured")
+	}
+	return s.dp.Trcr, nil
+}
+
+func (s *impl) Metrics() (*prometheus.Registry, error) {
+	if s.dp.Mtrcs == nil {
+		return nil, errors.New("metrics not enabled")
+	}
+	return s.dp.Mtrcs, nil
 }
