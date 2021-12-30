@@ -80,10 +80,7 @@ func (s *service) HandleMsg(req protocols.Request, p peer.ID) (protocols.Respons
 		return nil, errors.New("incorrect msg received")
 	}
 
-	// get peer list before adding peers
-	resp := s.getPeersFor(p)
-
-	s.checkAndAddPeers(*peers)
+	resp := s.checkAndAddPeers(*peers)
 	return resp, nil
 }
 
@@ -104,7 +101,8 @@ func (s *service) getPeersFor(pr peer.ID) *peersList {
 	return req
 }
 
-func (s *service) checkAndAddPeers(peers []peer.AddrInfo) {
+func (s *service) checkAndAddPeers(peers []peer.AddrInfo) *peersList {
+	successful := new(peersList)
 	for _, p := range peers {
 		if s.h.Network().Connectedness(p.ID) != network.Connected {
 			err := s.h.Connect(context.Background(), p)
@@ -115,10 +113,13 @@ func (s *service) checkAndAddPeers(peers []peer.AddrInfo) {
 
 			s.h.Peerstore().AddAddrs(p.ID, p.Addrs, peerstore.PermanentAddrTTL)
 			log.Debug("connected to peer", p)
+			*successful = append(*successful, p)
 		} else {
 			log.Debug("already connected to peer", p)
+			*successful = append(*successful, p)
 		}
 	}
+	return successful
 }
 
 func (s *service) BroadcastPeers(ctx context.Context, p peer.ID) error {
@@ -129,13 +130,12 @@ func (s *service) BroadcastPeers(ctx context.Context, p peer.ID) error {
 		return nil
 	}
 
-	resp, err := s.send(ctx, p, req)
+	// TODO: Currently we get the successfully connected peer list here which can be used
+	// to improve the peerstore by removing addresses which are not connectable
+	_, err := s.send(ctx, p, req)
 	if err != nil {
 		return err
 	}
 
-	peers := resp.(*peersList)
-
-	s.checkAndAddPeers(*peers)
 	return nil
 }
