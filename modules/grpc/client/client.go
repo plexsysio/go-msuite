@@ -197,7 +197,7 @@ func (c *staticClientImpl) Get(
 				conn, err = net.Dial("tcp", addr)
 				return
 			}
-			if _, err := os.Stat(addr); err == nil {
+			if _, e := os.Stat(addr); e == nil {
 				conn, err = net.Dial("unix", addr)
 				return
 			}
