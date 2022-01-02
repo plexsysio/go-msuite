@@ -57,6 +57,13 @@ For the public API please go through the `core` package
    - Each `go-msuite` instance or individual service can be started with a particular name. This name can be then used to connect to it from other `go-msuite` nodes. Currently, it uses libp2p discovery underneath as mentioned above.
    - A static configuration is also possible of the nodes and IP addresses are known in advance and libp2p is not configured.
 
+## Install
+go-msuite works like a regular golang library. You can import it using `go get`. Currently there is no versioning, so you can get the `master`. Versioning will be added later if required.
+
+```
+go get github.com/plexsysio/go-msuite@master
+```
+
 ## Quickstart
 
 
@@ -88,6 +95,10 @@ For the public API please go through the `core` package
 
 ## Examples
 There is a separate [repository](https://github.com/plexsysio/msuite-services) which contains different services built using `go-msuite`.
+
+## Drawbacks and future work
+- Currently there are a LOT of dependencies. However, this is by design, as the project was designed to be like a kitchen-sink for building distributed applications. If there are adopters, we could converge on the features which are more important and others which could potentially be removed. There are multiple ways to reduce binary sizes, so this is not considered a deal-breaker at the moment.
+- Some of the libraries can be instantiated using plugins. This should only add them to the binaries if they are being used. Again, this is not a priority. But this would give a lot of benefits in some cases. For eg the redis/v8 client library adds about 19MB weight to the binary. This can be solved using the plugin approach.
 
 ## License
 MIT licensed
