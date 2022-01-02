@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	nhttp "net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -45,11 +44,12 @@ func NewHTTPServerMux() *nhttp.ServeMux {
 }
 
 // HTTP redirect handler for gRPC gateway methods
-func responseHeaderMatcher(_ context.Context, w http.ResponseWriter, _ proto.Message) error {
+// TODO: maybe provide a way to configure these options using main Options
+func responseHeaderMatcher(_ context.Context, w nhttp.ResponseWriter, _ proto.Message) error {
 	headers := w.Header()
 	if location, ok := headers["Grpc-Metadata-Location"]; ok {
 		w.Header().Set("Location", location[0])
-		w.WriteHeader(http.StatusFound)
+		w.WriteHeader(nhttp.StatusFound)
 	}
 
 	return nil
