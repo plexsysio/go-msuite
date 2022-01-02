@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	nhttp "net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -12,6 +13,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/diag/status"
 	"github.com/plexsysio/go-msuite/utils"
 	"go.uber.org/fx"
+	"google.golang.org/protobuf/proto"
 )
 
 var log = logger.Logger("http")
@@ -42,8 +44,21 @@ func NewHTTPServerMux() *nhttp.ServeMux {
 	return nhttp.NewServeMux()
 }
 
+// HTTP redirect handler for gRPC gateway methods
+func responseHeaderMatcher(_ context.Context, w http.ResponseWriter, _ proto.Message) error {
+	headers := w.Header()
+	if location, ok := headers["Grpc-Metadata-Location"]; ok {
+		w.Header().Set("Location", location[0])
+		w.WriteHeader(http.StatusFound)
+	}
+
+	return nil
+}
+
 func NewGRPCGateway() *runtime.ServeMux {
-	return runtime.NewServeMux()
+	return runtime.NewServeMux(
+		runtime.WithForwardResponseOption(responseHeaderMatcher),
+	)
 }
 
 type httpReporter struct {
