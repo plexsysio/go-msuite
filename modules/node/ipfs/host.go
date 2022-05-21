@@ -10,7 +10,6 @@ import (
 	ipfslite "github.com/hsanjuan/ipfs-lite"
 	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p"
-	connmgr "github.com/libp2p/go-libp2p-connmgr"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/libp2p/go-libp2p-core/discovery"
 	host "github.com/libp2p/go-libp2p-core/host"
@@ -21,6 +20,7 @@ import (
 	p2pdiscovery "github.com/libp2p/go-libp2p-discovery"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	libp2ptls "github.com/libp2p/go-libp2p-tls"
+	connmgr "github.com/libp2p/go-libp2p/p2p/net/connmgr"
 	multiaddr "github.com/multiformats/go-multiaddr"
 	"github.com/plexsysio/go-msuite/modules/config"
 	"github.com/plexsysio/go-msuite/modules/diag/status"
@@ -51,7 +51,10 @@ func Identity(conf config.Config) (crypto.PrivKey, error) {
 
 var Libp2pOptionsExtra = []libp2p.Option{
 	libp2p.NATPortMap(),
-	libp2p.ConnectionManager(connmgr.NewConnManager(10, 50, time.Minute)),
+	libp2p.ConnectionManager(func() *connmgr.BasicConnMgr {
+		connMgr, _ := connmgr.NewConnManager(100, 500, connmgr.WithGracePeriod(time.Minute))
+		return connMgr
+	}()),
 	libp2p.EnableAutoRelay(),
 	libp2p.EnableNATService(),
 	libp2p.Security(libp2ptls.ID, libp2ptls.New),
