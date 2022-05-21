@@ -41,9 +41,9 @@ import (
 	"google.golang.org/grpc"
 )
 
-type FxLog struct{}
-
 var log = logger.Logger("node")
+
+type FxLog struct{}
 
 func (*FxLog) Printf(msg string, args ...interface{}) {
 	log.Infof(msg, args...)
