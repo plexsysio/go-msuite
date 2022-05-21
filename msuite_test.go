@@ -14,6 +14,7 @@ import (
 	"github.com/plexsysio/go-msuite"
 	"github.com/plexsysio/go-msuite/core"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func TestMain(m *testing.M) {
@@ -450,13 +451,13 @@ func TestMultiClient(t *testing.T) {
 
 	grpcApi, _ := app.GRPC()
 
-	conn, err := grpcApi.Client(context.TODO(), "svc1", grpc.WithInsecure())
+	conn, err := grpcApi.Client(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	conn.Close()
 
-	conn, err = grpcApi.Client(context.TODO(), "svc2", grpc.WithInsecure())
+	conn, err = grpcApi.Client(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
