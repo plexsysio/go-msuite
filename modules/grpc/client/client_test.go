@@ -52,13 +52,13 @@ func TestStaticAddrs(t *testing.T) {
 		t.Fatal("succeeded without any options")
 	}
 
-	conn, err := c.Get(context.TODO(), "svc1", grpc.WithInsecure())
+	conn, err := c.Get(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials())
 	if err != nil {
 		t.Fatal(err)
 	}
 	conn.Close()
 
-	conn, err = c.Get(context.TODO(), "svc2", grpc.WithInsecure())
+	conn, err = c.Get(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +119,7 @@ func TestP2PClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn, err := cs.Get(context.TODO(), "svc1", grpc.WithInsecure())
+	conn, err := cs.Get(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +127,7 @@ func TestP2PClient(t *testing.T) {
 	<-h2Fired
 	conn.Close()
 
-	conn, err = cs.Get(context.TODO(), "svc2", grpc.WithInsecure())
+	conn, err = cs.Get(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials())
 	if err != nil {
 		t.Fatal(err)
 	}
