@@ -17,6 +17,7 @@ import (
 	"github.com/plexsysio/go-msuite/modules/grpc/p2pgrpc"
 	"github.com/plexsysio/taskmanager"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func TestStaticAddrs(t *testing.T) {
@@ -52,13 +53,13 @@ func TestStaticAddrs(t *testing.T) {
 		t.Fatal("succeeded without any options")
 	}
 
-	conn, err := c.Get(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials())
+	conn, err := c.Get(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	conn.Close()
 
-	conn, err = c.Get(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials())
+	conn, err = c.Get(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -119,7 +120,7 @@ func TestP2PClient(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	conn, err := cs.Get(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials())
+	conn, err := cs.Get(context.TODO(), "svc1", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,7 +128,7 @@ func TestP2PClient(t *testing.T) {
 	<-h2Fired
 	conn.Close()
 
-	conn, err = cs.Get(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials())
+	conn, err = cs.Get(context.TODO(), "svc2", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		t.Fatal(err)
 	}
