@@ -80,7 +80,7 @@ require (
 	github.com/ipfs/go-bitswap v0.6.0 // indirect
 	github.com/ipfs/go-block-format v0.0.3 // indirect
 	github.com/ipfs/go-blockservice v0.3.0 // indirect
-	github.com/ipfs/go-cid v0.2.0 // indirect
+	github.com/ipfs/go-cid v0.3.2 // indirect
 	github.com/ipfs/go-cidutil v0.1.0 // indirect
 	github.com/ipfs/go-ds-crdt v0.2.1 // indirect
 	github.com/ipfs/go-fetcher v1.6.1 // indirect
@@ -108,7 +108,7 @@ require (
 	github.com/ipfs/go-verifcid v0.0.1 // indirect
 	github.com/ipfs/interface-go-ipfs-core v0.7.0 // indirect
 	github.com/ipld/go-codec-dagpb v1.4.1 // indirect
-	github.com/ipld/go-ipld-prime v0.16.0 // indirect
+	github.com/ipld/go-ipld-prime v0.19.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/jbenet/go-temp-err-catcher v0.1.0 // indirect
 	github.com/jbenet/goprocess v0.1.4 // indirect
@@ -158,7 +158,6 @@ require (
 	github.com/miekg/dns v1.1.49 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20190314235526-30a79bb1804b // indirect
 	github.com/mikioh/tcpopt v0.0.0-20190314235656-172688c1accc // indirect
-	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1 // indirect
 	github.com/minio/sha256-simd v1.0.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mr-tron/base58 v1.2.0 // indirect
@@ -167,8 +166,8 @@ require (
 	github.com/multiformats/go-multiaddr-dns v0.3.1 // indirect
 	github.com/multiformats/go-multiaddr-fmt v0.1.0 // indirect
 	github.com/multiformats/go-multibase v0.0.3 // indirect
-	github.com/multiformats/go-multicodec v0.4.1 // indirect
-	github.com/multiformats/go-multihash v0.1.0 // indirect
+	github.com/multiformats/go-multicodec v0.6.0 // indirect
+	github.com/multiformats/go-multihash v0.2.1 // indirect
 	github.com/multiformats/go-multistream v0.3.1 // indirect
 	github.com/multiformats/go-varint v0.0.6 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
@@ -201,7 +200,7 @@ require (
 	go.uber.org/dig v1.12.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898 // indirect
+	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
 	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sync v0.0.0-20220513210516-0976fa681c29 // indirect
